@@ -182,7 +182,7 @@ Every numeric and policy value in the PRDs is an example. These are the decision
 
 ### 4.1 Shape
 
-A single Next.js 15 App Router deployable, TypeScript strict mode. Not a monorepo: PRD-10 wraps this same application via Capacitor `server.url`, so there is no second package to share code with.
+A single Next.js 16 App Router deployable, TypeScript strict mode, ESM (`"type": "module"`, required by Prisma 7). Not a monorepo: PRD-10 wraps this same application via Capacitor `server.url`, so there is no second package to share code with.
 
 Route handlers under `src/app/api` are the API. Prisma is the data layer. Business logic lives in framework-agnostic modules under `src/server/services`, so it is unit-testable without HTTP and portable if a slice ever needs to move out.
 
@@ -196,19 +196,22 @@ teta_physio/
     schema.prisma
     migrations/
     seed.ts
+  prisma.config.ts               # Prisma 7 config: datasource, migrations, seed
   src/
+    generated/prisma/            # generated client (Prisma 7 requires explicit output)
     app/
       (public)/                  # public site — SSR (PRD-02)
       (portal)/                  # patient portal (PRD-04)
       (staff)/                   # staff + admin (PRD-05, PRD-06)
       api/                       # route handlers
       layout.tsx
+    middleware.ts                # unauthenticated redirect only
     server/
-      db.ts                      # Prisma singleton
+      db.ts                      # Prisma singleton + PrismaPg adapter
       auth/
         password.ts              # argon2id hash/verify
         session.ts               # create, read, slide, revoke
-        rbac.ts                  # requireRole, requireSession
+        rbac.ts                  # requireSession, requireRole
         rate-limit.ts
       services/                  # business logic per entity
       audit.ts
@@ -221,26 +224,73 @@ teta_physio/
     unit/
     integration/
     e2e/
+    setup.ts                     # loads dotenv for Vitest
 ```
 
 Route handlers parse, authorize, delegate, and serialize. They contain no business logic.
 
 ### 4.2 Dependencies
 
-Pinned to exact versions, no ranges.
+Pinned to exact versions, no ranges. All versions below were verified to install and build together on this machine (Windows, Node 24.14) in a throwaway probe before this spec was finalised.
 
-| Package | Purpose |
-|---|---|
-| `next`, `react`, `react-dom` | Framework |
-| `typescript`, `@types/node`, `@types/react` | Types |
-| `prisma`, `@prisma/client` | ORM and migrations |
-| `@node-rs/argon2` | argon2id hashing (native bindings, no build step on Windows) |
-| `zod` | Request and environment validation |
-| `tailwindcss`, `postcss`, `autoprefixer` | Styling |
-| `vitest`, `@vitest/coverage-v8` | Unit and integration tests |
-| `@playwright/test` | End-to-end login journeys |
-| `eslint`, `eslint-config-next`, `prettier` | Lint and format |
-| `tsx` | Running `prisma/seed.ts` |
+**Runtime:**
+
+| Package | Version | Purpose |
+|---|---|---|
+| `next` | 16.3.3 | Framework (App Router, Turbopack) |
+| `react`, `react-dom` | 19.2.8 | UI |
+| `prisma` | 7.10.0 | CLI and migrations |
+| `@prisma/client` | 7.10.0 | Generated client |
+| `@prisma/adapter-pg` | 7.10.0 | Driver adapter — mandatory in Prisma 7 |
+| `pg` | 8.23.0 | Postgres driver behind the adapter |
+| `@node-rs/argon2` | 2.1.0 | argon2id hashing; ships a prebuilt `win32-x64-msvc` binary, no build step |
+| `zod` | 4.4.3 | Request and environment validation |
+| `dotenv` | 17.4.2 | Prisma 7 no longer loads `.env` itself |
+| `server-only` | 0.0.1 | Guards server modules against client import |
+
+**Development:**
+
+| Package | Version | Purpose |
+|---|---|---|
+| `typescript` | 5.9.3 | Not 6.x: `typescript-eslint` 8.68 peer-caps at `<6.1.0` and Prisma 7 recommends 5.9.x |
+| `@types/node` | 26.4.0 | |
+| `@types/react` | 19.2.18 | |
+| `@types/react-dom` | 19.2.5 | |
+| `tailwindcss` | 4.3.3 | v4: CSS-first config |
+| `@tailwindcss/postcss` | 4.3.3 | v4 PostCSS plugin — replaces `postcss` + `autoprefixer`, which are no longer needed |
+| `vitest` | 4.1.11 | Unit and integration tests |
+| `@vitest/coverage-v8` | 4.1.11 | Must match `vitest` exactly (peer requirement) |
+| `@playwright/test` | 1.62.1 | E2E login journeys |
+| `tsx` | 4.23.12 | Runs `prisma/seed.ts` |
+| `eslint` | 9.x (via `eslint-config-next`) | Lint |
+| `eslint-config-next` | 16.3.3 | Must track the `next` version |
+| `prettier` | 3.9.6 | Format |
+
+**Deliberately not used:** `prisma` 8.0.0-rc.12 is the current `latest` dist-tag but is a release candidate; 7.10.0 is the `prev` tag and the newest stable. `postcss` and `autoprefixer` are omitted because Tailwind v4 does not need them. `vite-tsconfig-paths` is omitted because Vitest 4 resolves tsconfig paths natively via `resolve.tsconfigPaths: true`.
+
+### 4.2.1 Prisma 7 specifics
+
+Prisma 7 changed enough to be worth stating explicitly, since these are the things that silently break a v6-shaped setup:
+
+1. **ESM required.** `package.json` needs `"type": "module"`; `tsconfig.json` needs `module: "ESNext"`, `moduleResolution: "bundler"`, `target: "ES2023"`.
+2. **`prisma.config.ts` at the repo root** is where the datasource URL, migrations path, and seed command live. The `url` and `directUrl` fields in the schema's `datasource` block are deprecated.
+3. **Generator output is mandatory.** `provider = "prisma-client"` (not `prisma-client-js`) with `output = "../src/generated/prisma"`. Imports become `@/generated/prisma/client`, never `@prisma/client`.
+4. **A driver adapter is mandatory.** `new PrismaClient({ adapter: new PrismaPg({ connectionString }) })`.
+5. **`.env` is not auto-loaded.** `import "dotenv/config"` at the top of `prisma.config.ts`, and in the Vitest setup file — without it, Prisma calls inside tests fail with an opaque `PrismaClientKnownRequestError` rather than a missing-URL message. This cost real debugging time in the probe.
+6. **`migrate dev` no longer runs `generate` or seeds.** Both are explicit steps, so `package.json` scripts must chain them.
+7. **Neon and SSL.** Prisma 7 uses `node-pg`, which validates certificates where the old Rust engine did not. Neon needs `sslmode=require` in the connection string; if certificate validation fails, the fix is `NODE_EXTRA_CA_CERTS`, not disabling verification.
+
+### 4.2.2 Verified in the probe
+
+Confirmed working on this machine before writing the plan, so the plan does not gamble on any of it:
+
+- `@node-rs/argon2` produces `$argon2id$` hashes and verifies correctly on Windows with no compiler.
+- `prisma migrate dev` against local Postgres 17 on port 5435 emits exactly the intended DDL: `UUID` primary keys, `TIMESTAMPTZ`, `DECIMAL(12,2)`, native Postgres enums with `snake_case` values.
+- Prisma 7 + `PrismaPg` performs creates, relation includes, and `$queryRaw` with `AT TIME ZONE 'Africa/Lagos'`.
+- `Decimal(12,2)` round-trips `1234.56` without float error.
+- `next build` succeeds with a Prisma-querying route handler, Tailwind v4, and middleware.
+- `cookies().set()` emits `HttpOnly; SameSite=lax` correctly, and middleware issues a 307 redirect to `/login` for an unauthenticated protected path.
+- Vitest 4 runs Prisma-backed tests once `dotenv/config` is in the setup file.
 
 ### 4.3 Environments
 
@@ -269,7 +319,7 @@ Environment variables, validated by a zod schema at startup so a missing variabl
 
 ### 4.4 Schema conventions
 
-- **Primary keys:** UUID via `gen_random_uuid()` (core in PG13+, available on Neon). Patient and appointment IDs appear in URLs; sequential integers there would permit enumeration of the clinic's patient list.
+- **Primary keys:** UUID, generated by Prisma's `@default(uuid())` and stored as native `@db.Uuid`. Patient and appointment IDs appear in URLs; sequential integers there would permit enumeration of the clinic's patient list.
 - **Human-readable identifiers:** `patients.patient_code` (`TP-00001`) satisfies PRD-06's searchable "patient ID"; `invoices.invoice_number` (`INV-2026-00001`). Both from Postgres sequences, distinct from the UUID.
 - **Money:** `Decimal(12,2)`, never float.
 - **Time:** `timestamptz` everywhere.
