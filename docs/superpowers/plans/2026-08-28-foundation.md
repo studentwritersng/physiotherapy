@@ -1,6 +1,6 @@
 # TetaPhysio Foundation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the TetaPhysio application skeleton — complete database schema, four-role authentication, server-enforced RBAC, the PRD-12 security baseline, and enough UI to log in as each role and see role-correct navigation.
 
@@ -96,7 +96,7 @@ The repo is already initialised with two commits (PRD set + design spec). Work o
   - `src/lib/env.ts` exports `parseEnv(raw: Record<string, string | undefined>): Env` for testing
   - `src/lib/constants.ts` exports `TIMEZONE`, `ARGON2_OPTIONS`, `SESSION_TTL_SECONDS`, `SESSION_SLIDE_AFTER_SECONDS`, `RATE_LIMIT_MAX_ATTEMPTS`, `RATE_LIMIT_WINDOW_SECONDS`, `PASSWORD_MIN_LENGTH`, `UPLOAD_MAX_BYTES`, `UPLOAD_ALLOWED_MIME`, `DEFAULT_SERVICE_DURATION_MINUTES`, `RESCHEDULE_CUTOFF_HOURS`, `CANCELLATION_CUTOFF_HOURS`, `REMINDER_LEAD_HOURS`
 
-- [ ] **Step 1: Create `package.json` with exact versions**
+- [x] **Step 1: Create `package.json` with exact versions**
 
 ```json
 {
@@ -152,14 +152,14 @@ The repo is already initialised with two commits (PRD set + design spec). Work o
 }
 ```
 
-- [ ] **Step 2: Install dependencies**
+- [x] **Step 2: Install dependencies**
 
 Run: `npm install`
 Expected: completes with no `ERESOLVE` peer errors. `@node-rs/argon2` installs a prebuilt `win32-x64-msvc` binary with no compilation.
 
 If npm reports a peer conflict on `eslint`, run `npm view eslint-config-next@16.3.3 peerDependencies` and pin `eslint` to the highest 9.x that satisfies it. Do not use `--legacy-peer-deps`.
 
-- [ ] **Step 3: Create `tsconfig.json`**
+- [x] **Step 3: Create `tsconfig.json`**
 
 ```json
 {
@@ -188,7 +188,7 @@ If npm reports a peer conflict on `eslint`, run `npm view eslint-config-next@16.
 
 Note: `next build` will rewrite `jsx` to `react-jsx` and add `.next/dev/types/**/*.ts` to `include` on first run. That is expected; let it.
 
-- [ ] **Step 4: Create config files**
+- [x] **Step 4: Create config files**
 
 `next.config.ts`:
 
@@ -233,7 +233,7 @@ Run `npm install -E -D @eslint/eslintrc@3.3.6` for the `FlatCompat` import.
 { "semi": true, "singleQuote": false, "trailingComma": "all", "printWidth": 100 }
 ```
 
-- [ ] **Step 5: Create `.env.example` (committed) and `.env` (gitignored)**
+- [x] **Step 5: Create `.env.example` (committed) and `.env` (gitignored)**
 
 `.env.example`:
 
@@ -260,7 +260,7 @@ SEED_PATIENT_PASSWORD="changeme1"
 
 `.env` is a copy of the same file with the commented production lines removed. Verify `git status` does not list `.env`.
 
-- [ ] **Step 6: Write the failing test for env validation**
+- [x] **Step 6: Write the failing test for env validation**
 
 `tests/unit/env.test.ts`:
 
@@ -305,7 +305,7 @@ describe("parseEnv", () => {
 });
 ```
 
-- [ ] **Step 7: Create `vitest.config.ts` and `tests/setup.ts`**
+- [x] **Step 7: Create `vitest.config.ts` and `tests/setup.ts`**
 
 `vitest.config.ts`:
 
@@ -337,12 +337,12 @@ if (process.env.TEST_DATABASE_URL) {
 }
 ```
 
-- [ ] **Step 8: Run the test to verify it fails**
+- [x] **Step 8: Run the test to verify it fails**
 
 Run: `npx vitest run tests/unit/env.test.ts`
 Expected: FAIL — `Failed to resolve import "@/lib/env"`.
 
-- [ ] **Step 9: Implement `src/lib/env.ts`**
+- [x] **Step 9: Implement `src/lib/env.ts`**
 
 ```ts
 import { z } from "zod";
@@ -377,12 +377,12 @@ export function parseEnv(raw: Record<string, string | undefined>): Env {
 export const env: Env = parseEnv(process.env);
 ```
 
-- [ ] **Step 10: Run the test to verify it passes**
+- [x] **Step 10: Run the test to verify it passes**
 
 Run: `npx vitest run tests/unit/env.test.ts`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 11: Create `src/lib/constants.ts`**
+- [x] **Step 11: Create `src/lib/constants.ts`**
 
 ```ts
 /**
@@ -424,7 +424,7 @@ export const REMINDER_LEAD_HOURS = [24, 2] as const;
 export const CURRENCY = "NGN";
 ```
 
-- [ ] **Step 12: Create the minimal app shell so `next build` has something to build**
+- [x] **Step 12: Create the minimal app shell so `next build` has something to build**
 
 `src/app/globals.css`:
 
@@ -477,12 +477,12 @@ export default function HomePage() {
 }
 ```
 
-- [ ] **Step 13: Verify build, typecheck and lint all pass**
+- [x] **Step 13: Verify build, typecheck and lint all pass**
 
 Run: `npm run typecheck && npm run lint && npx next build`
 Expected: all three succeed. `next build` lists `/` as a static route.
 
-- [ ] **Step 14: Commit**
+- [x] **Step 14: Commit**
 
 ```bash
 git add package.json package-lock.json tsconfig.json next.config.ts postcss.config.mjs eslint.config.mjs .prettierrc.json .env.example vitest.config.ts tests/ src/
@@ -510,7 +510,7 @@ Confirm `git status` does not show `.env`.
 
 This task authors all 27 tables in one pass (spec §4.4) so later sub-projects add no core-table migrations. Only the auth tables get used in Foundation; the rest exist and stay empty.
 
-- [ ] **Step 1: Create the two local databases**
+- [x] **Step 1: Create the two local databases**
 
 ```bash
 "/c/Program Files/PostgreSQL/17/bin/psql.exe" -h localhost -p 5435 -U postgres -d postgres \
@@ -519,7 +519,7 @@ This task authors all 27 tables in one pass (spec §4.4) so later sub-projects a
 
 Expected: `CREATE DATABASE` twice. If either already exists, that is fine — proceed.
 
-- [ ] **Step 2: Add the generated client to `.gitignore`**
+- [x] **Step 2: Add the generated client to `.gitignore`**
 
 Append to `.gitignore`:
 
@@ -528,7 +528,7 @@ Append to `.gitignore`:
 src/generated/
 ```
 
-- [ ] **Step 3: Create `prisma.config.ts`**
+- [x] **Step 3: Create `prisma.config.ts`**
 
 ```ts
 import "dotenv/config";
@@ -550,7 +550,7 @@ export default defineConfig({
 
 This file replaces the deprecated `url` / `directUrl` fields in the schema's `datasource` block, and registers the seed command that `prisma db seed` runs.
 
-- [ ] **Step 4: Create `prisma/schema.prisma` — generator, datasource, enums**
+- [x] **Step 4: Create `prisma/schema.prisma` — generator, datasource, enums**
 
 ```prisma
 generator client {
@@ -665,7 +665,7 @@ enum DevicePlatform {
 }
 ```
 
-- [ ] **Step 5: Append the identity and auth models**
+- [x] **Step 5: Append the identity and auth models**
 
 ```prisma
 // ─────────────────────── Identity & auth ───────────────────────
@@ -778,7 +778,7 @@ model StaffProfile {
 }
 ```
 
-- [ ] **Step 6: Append the patient and clinic-configuration models**
+- [x] **Step 6: Append the patient and clinic-configuration models**
 
 ```prisma
 // ─────────────────── Patients & clinic config ───────────────────
@@ -905,7 +905,7 @@ model TherapistAvailability {
 }
 ```
 
-- [ ] **Step 7: Append the appointment models**
+- [x] **Step 7: Append the appointment models**
 
 ```prisma
 // ───────────────────────── Appointments ─────────────────────────
@@ -962,7 +962,7 @@ model AppointmentStatusHistory {
 }
 ```
 
-- [ ] **Step 8: Append the clinical models**
+- [x] **Step 8: Append the clinical models**
 
 ```prisma
 // ────────────────────────── Clinical ──────────────────────────
@@ -1119,7 +1119,7 @@ model PatientDocument {
 }
 ```
 
-- [ ] **Step 9: Append the billing, notification and audit models**
+- [x] **Step 9: Append the billing, notification and audit models**
 
 ```prisma
 // ─────────────────────────── Billing ───────────────────────────
@@ -1276,14 +1276,14 @@ model AuditLog {
 }
 ```
 
-- [ ] **Step 10: Create the migration and generate the client**
+- [x] **Step 10: Create the migration and generate the client**
 
 Run: `npx prisma migrate dev --name init && npx prisma generate`
 Expected: migration created under `prisma/migrations/<timestamp>_init/`, then `Generated Prisma Client (7.10.0) to .\src\generated\prisma`.
 
 If migration fails on a relation error, read the message: Prisma names both sides of a relation, and `User` has several relations to the same model (`Appointment` twice, `SessionNote` twice), which is why those carry explicit `@relation("Name")` labels. Every label must match on both sides.
 
-- [ ] **Step 11: Verify the generated DDL matches the spec's conventions**
+- [x] **Step 11: Verify the generated DDL matches the spec's conventions**
 
 Run: `grep -E "UUID|TIMESTAMPTZ|DECIMAL\(12,2\)" prisma/migrations/*_init/migration.sql | head -20`
 Expected: UUID primary keys, `TIMESTAMPTZ` timestamps, `DECIMAL(12,2)` money columns.
@@ -1294,7 +1294,7 @@ Expected: `27`.
 Run: `grep -c "CREATE TYPE" prisma/migrations/*_init/migration.sql`
 Expected: `15`.
 
-- [ ] **Step 12: Write the schema integration test**
+- [x] **Step 12: Write the schema integration test**
 
 `tests/integration/schema.test.ts`:
 
@@ -1390,7 +1390,7 @@ describe("schema", () => {
 });
 ```
 
-- [ ] **Step 13: Apply migrations to the test database and run the test**
+- [x] **Step 13: Apply migrations to the test database and run the test**
 
 ```bash
 DATABASE_URL="postgresql://postgres@localhost:5435/teta_physio_test" npx prisma migrate deploy
@@ -1399,7 +1399,7 @@ npx vitest run tests/integration/schema.test.ts
 
 Expected: PASS, 5 tests. `tests/setup.ts` redirects `DATABASE_URL` to `TEST_DATABASE_URL`, so the test writes to `teta_physio_test`.
 
-- [ ] **Step 14: Commit**
+- [x] **Step 14: Commit**
 
 ```bash
 git add prisma.config.ts prisma/schema.prisma prisma/migrations .gitignore tests/integration/schema.test.ts
@@ -1435,7 +1435,7 @@ snake_case enum values."
   - `src/server/audit.ts` exports `type AuditAction` (union of the string literals below) and `audit(input: AuditInput): Promise<void>` where `AuditInput = { userId?: string | null; action: AuditAction; entityType?: string; entityId?: string; ipAddress?: string | null; metadata?: Record<string, unknown> }`
   - `tests/helpers/db.ts` exports `testPrisma: PrismaClient` and `truncateAll(): Promise<void>`
 
-- [ ] **Step 1: Create the Prisma singleton**
+- [x] **Step 1: Create the Prisma singleton**
 
 `src/server/db.ts`:
 
@@ -1462,7 +1462,7 @@ if (env.NODE_ENV !== "production") {
 }
 ```
 
-- [ ] **Step 2: Create the test database helper**
+- [x] **Step 2: Create the test database helper**
 
 `tests/helpers/db.ts`:
 
@@ -1490,7 +1490,7 @@ export async function truncateAll(): Promise<void> {
 }
 ```
 
-- [ ] **Step 3: Write the failing password test**
+- [x] **Step 3: Write the failing password test**
 
 `tests/unit/password.test.ts`:
 
@@ -1528,12 +1528,12 @@ describe("password hashing", () => {
 });
 ```
 
-- [ ] **Step 4: Run the test to verify it fails**
+- [x] **Step 4: Run the test to verify it fails**
 
 Run: `npx vitest run tests/unit/password.test.ts`
 Expected: FAIL — `Failed to resolve import "@/server/auth/password"`.
 
-- [ ] **Step 5: Implement password hashing**
+- [x] **Step 5: Implement password hashing**
 
 `src/server/auth/password.ts`:
 
@@ -1559,12 +1559,12 @@ export async function verifyPassword(storedHash: string, plain: string): Promise
 }
 ```
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [x] **Step 6: Run the test to verify it passes**
 
 Run: `npx vitest run tests/unit/password.test.ts`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 7: Write the failing audit test**
+- [x] **Step 7: Write the failing audit test**
 
 `tests/integration/audit.test.ts`:
 
@@ -1641,12 +1641,12 @@ describe("audit", () => {
 });
 ```
 
-- [ ] **Step 8: Run the test to verify it fails**
+- [x] **Step 8: Run the test to verify it fails**
 
 Run: `npx vitest run tests/integration/audit.test.ts`
 Expected: FAIL — `Failed to resolve import "@/server/audit"`.
 
-- [ ] **Step 9: Implement the audit log**
+- [x] **Step 9: Implement the audit log**
 
 `src/server/audit.ts`:
 
@@ -1729,12 +1729,12 @@ export async function audit(input: AuditInput): Promise<void> {
 
 Note: `src/server/audit.ts` imports `prisma` from `src/server/db.ts`, which reads `env.DATABASE_URL`. Because `tests/setup.ts` reassigns `process.env.DATABASE_URL` before any test module loads, the singleton connects to the test database.
 
-- [ ] **Step 10: Run the test to verify it passes**
+- [x] **Step 10: Run the test to verify it passes**
 
 Run: `npx vitest run tests/integration/audit.test.ts`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add src/server/db.ts src/server/auth/password.ts src/server/audit.ts tests/
@@ -1769,7 +1769,7 @@ logging failure can never break the action being logged."
   - `revokeAllSessions(userId: string): Promise<void>`
   - `sessionCookieOptions(): { name: string; httpOnly: true; sameSite: "lax"; secure: boolean; path: "/"; maxAge: number }`
 
-- [ ] **Step 1: Write the failing session test**
+- [x] **Step 1: Write the failing session test**
 
 `tests/integration/session.test.ts`:
 
@@ -1918,12 +1918,12 @@ describe("sessions", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/integration/session.test.ts`
 Expected: FAIL — `Failed to resolve import "@/server/auth/session"`.
 
-- [ ] **Step 3: Implement the session module**
+- [x] **Step 3: Implement the session module**
 
 `src/server/auth/session.ts`:
 
@@ -2041,12 +2041,12 @@ export async function revokeAllSessions(userId: string): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/integration/session.test.ts`
 Expected: PASS, 10 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/server/auth/session.ts tests/integration/session.test.ts
@@ -2077,7 +2077,7 @@ users, and deletes expired rows on read."
   - `recordFailedAttempt(identifier: string, ipAddress?: string | null): Promise<void>`
   - `clearAttempts(identifier: string): Promise<void>`
 
-- [ ] **Step 1: Write the failing rate limit test**
+- [x] **Step 1: Write the failing rate limit test**
 
 `tests/integration/rate-limit.test.ts`:
 
@@ -2159,12 +2159,12 @@ describe("rate limiting", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/integration/rate-limit.test.ts`
 Expected: FAIL — `Failed to resolve import "@/server/auth/rate-limit"`.
 
-- [ ] **Step 3: Implement rate limiting**
+- [x] **Step 3: Implement rate limiting**
 
 `src/server/auth/rate-limit.ts`:
 
@@ -2221,12 +2221,12 @@ export async function clearAttempts(identifier: string): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/integration/rate-limit.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/server/auth/rate-limit.ts tests/integration/rate-limit.test.ts
@@ -2253,7 +2253,7 @@ casing cannot open a fresh bucket, and a successful login clears the bucket."
 
 `requireSession` and `requireRole` throw rather than return null, so a handler that forgets to check the result still fails closed.
 
-- [ ] **Step 1: Write the failing RBAC test**
+- [x] **Step 1: Write the failing RBAC test**
 
 `tests/integration/rbac.test.ts`:
 
@@ -2435,12 +2435,12 @@ describe("patient access rules", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/integration/rbac.test.ts`
 Expected: FAIL — cannot resolve `@/server/services/patient`.
 
-- [ ] **Step 3: Implement the RBAC guards**
+- [x] **Step 3: Implement the RBAC guards**
 
 `src/server/auth/rbac.ts`:
 
@@ -2491,7 +2491,7 @@ export async function requireRole(...roles: UserRole[]): Promise<SessionUser> {
 }
 ```
 
-- [ ] **Step 4: Implement the patient service**
+- [x] **Step 4: Implement the patient service**
 
 `src/server/services/patient.ts`:
 
@@ -2598,12 +2598,12 @@ export function assertCanReadClinical(actor: SessionUser): void {
 }
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run tests/integration/rbac.test.ts`
 Expected: PASS, 10 tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/server/auth/rbac.ts src/server/services/patient.ts tests/integration/rbac.test.ts
@@ -2644,7 +2644,7 @@ type LoginOutcome =
   | { ok: false; reason: "account_inactive" };
 ```
 
-- [ ] **Step 1: Create the shared Zod schemas**
+- [x] **Step 1: Create the shared Zod schemas**
 
 `src/lib/zod/auth.ts`:
 
@@ -2693,7 +2693,7 @@ export type PatientRegisterInput = z.infer<typeof patientRegisterSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 ```
 
-- [ ] **Step 2: Write the failing login test**
+- [x] **Step 2: Write the failing login test**
 
 `tests/integration/login.test.ts`:
 
@@ -2934,12 +2934,12 @@ describe("changePassword", () => {
 });
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `npx vitest run tests/integration/login.test.ts`
 Expected: FAIL — cannot resolve `@/server/auth/login`.
 
-- [ ] **Step 4: Implement the login module**
+- [x] **Step 4: Implement the login module**
 
 `src/server/auth/login.ts`:
 
@@ -3187,12 +3187,12 @@ export async function changePassword(
 }
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run tests/integration/login.test.ts`
 Expected: PASS, 19 tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/lib/zod/auth.ts src/server/auth/login.ts tests/integration/login.test.ts
@@ -3229,7 +3229,7 @@ session recoverable."
 
 Vendors are pinned as intent (Paystack, Termii, Cloudflare R2) but no live account is needed in Foundation (spec §3.9). Only the interfaces and local implementations exist here; real adapters arrive in sub-projects 7 and 8.
 
-- [ ] **Step 1: Define the provider interfaces**
+- [x] **Step 1: Define the provider interfaces**
 
 `src/server/providers/types.ts`:
 
@@ -3276,7 +3276,7 @@ export interface PaymentProvider {
 }
 ```
 
-- [ ] **Step 2: Implement the local development providers**
+- [x] **Step 2: Implement the local development providers**
 
 `src/server/providers/local.ts`:
 
@@ -3369,7 +3369,7 @@ Append to `.gitignore`:
 .uploads/
 ```
 
-- [ ] **Step 3: Write the failing seed test**
+- [x] **Step 3: Write the failing seed test**
 
 `tests/integration/seed.test.ts`:
 
@@ -3468,12 +3468,12 @@ describe("seed", () => {
 });
 ```
 
-- [ ] **Step 4: Run the test to verify it fails**
+- [x] **Step 4: Run the test to verify it fails**
 
 Run: `npx vitest run tests/integration/seed.test.ts`
 Expected: FAIL — `prisma/seed.ts` does not exist.
 
-- [ ] **Step 5: Implement the seed**
+- [x] **Step 5: Implement the seed**
 
 `prisma/seed.ts`:
 
@@ -3746,19 +3746,19 @@ main()
   });
 ```
 
-- [ ] **Step 6: Run the seed against the dev database**
+- [x] **Step 6: Run the seed against the dev database**
 
 Run: `npm run db:seed`
 Expected: `Seed complete.` and the admin login details.
 
 Run it a second time. Expected: same output, no unique-constraint error.
 
-- [ ] **Step 7: Run the seed test**
+- [x] **Step 7: Run the seed test**
 
 Run: `npx vitest run tests/integration/seed.test.ts`
 Expected: PASS, 9 tests.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/server/providers prisma/seed.ts tests/integration/seed.test.ts .gitignore
@@ -3788,7 +3788,7 @@ re-running is safe. Staff accounts are seeded with mustResetPassword."
   - `src/server/http.ts` exports `jsonError(status: number, message: string, extra?: Record<string, unknown>): Response`, `requestMeta(req: Request): RequestMeta`, `handleAuthError(error: unknown): Response`
   - Endpoints: `POST /api/auth/login`, `POST /api/auth/portal-login`, `POST /api/auth/register`, `POST /api/auth/logout`, `POST /api/auth/change-password`, `GET /api/auth/me`
 
-- [ ] **Step 1: Create the HTTP helpers**
+- [x] **Step 1: Create the HTTP helpers**
 
 `src/server/http.ts`:
 
@@ -3823,7 +3823,7 @@ export function handleAuthError(error: unknown): NextResponse {
 }
 ```
 
-- [ ] **Step 2: Implement the staff login route**
+- [x] **Step 2: Implement the staff login route**
 
 `src/app/api/auth/login/route.ts`:
 
@@ -3871,7 +3871,7 @@ export async function POST(req: Request) {
 }
 ```
 
-- [ ] **Step 3: Implement the patient login route**
+- [x] **Step 3: Implement the patient login route**
 
 `src/app/api/auth/portal-login/route.ts`:
 
@@ -3922,7 +3922,7 @@ export async function POST(req: Request) {
 }
 ```
 
-- [ ] **Step 4: Implement register, logout, change-password and me**
+- [x] **Step 4: Implement register, logout, change-password and me**
 
 `src/app/api/auth/register/route.ts`:
 
@@ -4044,7 +4044,7 @@ export async function GET() {
 }
 ```
 
-- [ ] **Step 5: Implement middleware**
+- [x] **Step 5: Implement middleware**
 
 `src/middleware.ts`:
 
@@ -4080,12 +4080,12 @@ export const config = {
 };
 ```
 
-- [ ] **Step 6: Verify the build compiles**
+- [x] **Step 6: Verify the build compiles**
 
 Run: `npm run typecheck && npx next build`
 Expected: both pass. The build output lists the six `/api/auth/*` routes as dynamic (`ƒ`) and shows `ƒ Proxy (Middleware)`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/server/http.ts src/middleware.ts src/app/api
@@ -4119,7 +4119,7 @@ middleware and is rejected by requireSession server-side."
 
 One client component drives all four screens: each posts a flat JSON body to an endpoint and follows `redirectTo`. No design system yet (spec §6) — plain Tailwind.
 
-- [ ] **Step 1: Create the form field component**
+- [x] **Step 1: Create the form field component**
 
 `src/components/FormField.tsx`:
 
@@ -4170,7 +4170,7 @@ export function FormField({
 }
 ```
 
-- [ ] **Step 2: Create the shared auth form**
+- [x] **Step 2: Create the shared auth form**
 
 `src/components/AuthForm.tsx`:
 
@@ -4258,7 +4258,7 @@ export function AuthForm({ title, subtitle, endpoint, fields, submitLabel, foote
 }
 ```
 
-- [ ] **Step 3: Create the auth route-group layout**
+- [x] **Step 3: Create the auth route-group layout**
 
 `src/app/(auth)/layout.tsx`:
 
@@ -4272,7 +4272,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
-- [ ] **Step 4: Create the four screens**
+- [x] **Step 4: Create the four screens**
 
 `src/app/(auth)/login/page.tsx`:
 
@@ -4438,19 +4438,19 @@ export default async function ResetPasswordPage() {
 }
 ```
 
-- [ ] **Step 5: Verify the build**
+- [x] **Step 5: Verify the build**
 
 Run: `npm run typecheck && npm run lint && npx next build`
 Expected: all pass; `/login`, `/portal/login`, `/portal/register` and `/reset-password` appear in the route list.
 
-- [ ] **Step 6: Manually confirm the screens render**
+- [x] **Step 6: Manually confirm the screens render**
 
 Run: `npm run dev`, then open `http://localhost:3000/login` and `http://localhost:3000/portal/register`.
 Expected: labelled fields, visible focus rings, and a submit button. Submitting empty fields shows a server error message in the live region rather than a blank failure.
 
 Stop the dev server.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/components src/app/\(auth\)
@@ -4481,7 +4481,7 @@ somewhere it is not allowed to be."
 
 Navigation is derived from role in a pure function, so it can be unit-tested without rendering.
 
-- [ ] **Step 1: Write the failing navigation test**
+- [x] **Step 1: Write the failing navigation test**
 
 `tests/integration/nav.test.ts`:
 
@@ -4543,12 +4543,12 @@ describe("staff navigation", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/integration/nav.test.ts`
 Expected: FAIL — cannot resolve `@/lib/nav`.
 
-- [ ] **Step 3: Implement the navigation model**
+- [x] **Step 3: Implement the navigation model**
 
 `src/lib/nav.ts`:
 
@@ -4610,12 +4610,12 @@ export function portalLinks(): NavLink[] {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/integration/nav.test.ts`
 Expected: PASS, 6 tests.
 
-- [ ] **Step 5: Create the logout button and the shell component**
+- [x] **Step 5: Create the logout button and the shell component**
 
 Logout must be a client component: the endpoint returns JSON with `redirectTo`, which a plain HTML form POST cannot follow.
 
@@ -4727,7 +4727,7 @@ export function NavShell({
 }
 ```
 
-- [ ] **Step 6: Create the two shells and their dashboards**
+- [x] **Step 6: Create the two shells and their dashboards**
 
 `src/app/(staff)/layout.tsx`:
 
@@ -4824,12 +4824,12 @@ export default async function PortalDashboardPage() {
 }
 ```
 
-- [ ] **Step 7: Verify the build and run the whole suite**
+- [x] **Step 7: Verify the build and run the whole suite**
 
 Run: `npm run typecheck && npm run lint && npx next build && npm test`
 Expected: build passes; every test file passes.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/lib/nav.ts src/components src/app/\(staff\) src/app/\(portal\)
@@ -4858,12 +4858,12 @@ page re-checks its own role rather than trusting the layout."
 
 Playwright runs against a real built server and the seeded dev database, so this catches integration failures the Vitest suite cannot see (cookie attributes, middleware redirects, hydration errors).
 
-- [ ] **Step 1: Install the browser**
+- [x] **Step 1: Install the browser**
 
 Run: `npx playwright install chromium`
 Expected: downloads Chromium. Only Chromium is needed; the target audience is Android Chrome, and cross-browser coverage is not what this suite is for.
 
-- [ ] **Step 2: Create the Playwright config**
+- [x] **Step 2: Create the Playwright config**
 
 `playwright.config.ts`:
 
@@ -4895,7 +4895,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 3: Write the E2E suite**
+- [x] **Step 3: Write the E2E suite**
 
 `tests/e2e/login.spec.ts`:
 
@@ -5066,19 +5066,19 @@ test.describe("unauthenticated access", () => {
 });
 ```
 
-- [ ] **Step 4: Reset the dev database so the seed state is clean**
+- [x] **Step 4: Reset the dev database so the seed state is clean**
 
 Run: `npm run db:reset`
 Expected: migrations reapplied, seed run. This matters because the E2E tests change seeded passwords.
 
-- [ ] **Step 5: Build and run the E2E suite**
+- [x] **Step 5: Build and run the E2E suite**
 
 Run: `npx next build && npx playwright test`
 Expected: all tests pass on both the `chromium` and `mobile` projects.
 
 If the password-change tests fail on a second run, that is expected — they mutate seeded passwords. Re-run `npm run db:reset` first. Note this in the commit message so it is not mistaken for flakiness later.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add playwright.config.ts tests/e2e
@@ -5109,7 +5109,7 @@ re-run rather than treating a repeat failure as flakiness."
 - Consumes: everything
 - Produces: no application code
 
-- [ ] **Step 1: Run the full verification sequence from a clean state**
+- [x] **Step 1: Run the full verification sequence from a clean state**
 
 ```bash
 npm run db:reset
@@ -5122,7 +5122,7 @@ npx playwright test
 
 Expected: every command exits 0. Record any failure and fix it before proceeding — this is the definition-of-done gate from spec §9.
 
-- [ ] **Step 2: Verify no secrets are committed**
+- [x] **Step 2: Verify no secrets are committed**
 
 ```bash
 git ls-files | grep -E "^\.env$" && echo "FAIL: .env is tracked" || echo "OK: .env not tracked"
@@ -5131,7 +5131,7 @@ git grep -i "thompson" -- . ':!*.md' && echo "FAIL: credential in tracked files"
 
 Expected: `OK` for both.
 
-- [ ] **Step 3: Confirm the database matches the spec**
+- [x] **Step 3: Confirm the database matches the spec**
 
 ```bash
 "/c/Program Files/PostgreSQL/17/bin/psql.exe" -h localhost -p 5435 -U postgres -d teta_physio_dev \
@@ -5142,7 +5142,7 @@ Expected: `OK` for both.
 
 Expected: 27 tables, 15 enums, and one row each for admin and receptionist, two therapists, two patients.
 
-- [ ] **Step 4: Write the README**
+- [x] **Step 4: Write the README**
 
 `README.md`:
 
@@ -5254,11 +5254,11 @@ The test suite never connects to Neon.
 - `docs/superpowers/plans/` — implementation plans
 ````
 
-- [ ] **Step 5: Tick every completed checkbox in this plan**
+- [x] **Step 5: Tick every completed checkbox in this plan**
 
-Change `- [ ]` to `- [x]` for all steps in tasks 1–13.
+Change `- [x]` to `- [x]` for all steps in tasks 1–13.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add README.md docs/superpowers/plans/2026-08-28-foundation.md
