@@ -1,21 +1,41 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 import { testPrisma, truncateAll } from "../helpers/db";
 
 /**
+ * Resolve tsx's own binary rather than going through `npx`, which re-resolves the
+ * package on every call and costs a second or more of the hook budget.
+ */
+const TSX = resolve(
+  import.meta.dirname,
+  "../../node_modules/tsx/dist/cli.mjs",
+);
+
+/**
  * Runs the real seed script as a child process against TEST_DATABASE_URL, which
- * tests/setup.ts has already put in DATABASE_URL. execSync with a fixed command
- * string rather than execFileSync + shell:true, which Node deprecates (DEP0190)
- * because arguments are concatenated unescaped. There is no interpolation here.
+ * tests/setup.ts has already put in DATABASE_URL.
+ *
+ * execFileSync without a shell: the arguments are fixed and passed as an array,
+ * so nothing is concatenated or interpreted (Node deprecates shell:true with
+ * args as DEP0190).
  */
 function runSeed(): void {
-  execSync("npx tsx prisma/seed.ts", { stdio: "pipe", env: { ...process.env } });
+  execFileSync(process.execPath, [TSX, "prisma/seed.ts"], {
+    stdio: "pipe",
+    env: { ...process.env },
+  });
 }
 
+/**
+ * 60s, not Vitest's 10s default. The seed hashes three passwords with argon2id at
+ * 19MB memory cost each, and this hook also truncates every table — comfortably
+ * over 10s on a loaded machine even though the seed alone runs in under 4s.
+ */
 beforeAll(async () => {
   await truncateAll();
   runSeed();
-});
+}, 60_000);
 
 afterAll(async () => {
   await testPrisma.$disconnect();
@@ -93,5 +113,5 @@ describe("seed", () => {
     expect(await testPrisma.clinicSettings.count()).toBe(1);
     expect(await testPrisma.notificationTemplate.count()).toBe(5);
     expect(await testPrisma.staffProfile.count()).toBe(2);
-  });
+  }, 60_000);
 });
