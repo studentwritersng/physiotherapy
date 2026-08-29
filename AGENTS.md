@@ -2,69 +2,93 @@
 
 Physiotherapy clinic management platform for a single clinic in Nigeria. Read `docs/superpowers/specs/2026-08-28-foundation-design.md` before making architectural decisions; it records 11 resolved contradictions across the 13 PRDs in `doc/prd/`.
 
-## UI work: use ui-ux-pro-max first
+## The design system is `doc/clinic-dashboard.html`
 
-**Before building or restyling any dashboard, page, or component, run the `ui-ux-pro-max` skill.** This is not optional. It settles the visual system — palette, typography, layout pattern, anti-patterns — before any markup gets written.
+**That file is the visual reference for this platform. Read it before building any UI.** It is a working, dependency-free mockup: CSS custom properties, hand-rolled SVG, one small script. Everything below is extracted from it.
 
-```bash
-python "C:/Users/Teta/.opencode/skills/ui-ux-pro-max/scripts/search.py" "<query>" --design-system -p "TetaPhysio"
-python "C:/Users/Teta/.opencode/skills/ui-ux-pro-max/scripts/search.py" "<query>" --stack nextjs
-```
+Two themes, both fully specified in the file: `:root` holds dark, `html[data-theme="light"]` holds light. **Light is the default for this project** — set `data-theme="light"` on `<html>` and let the toggle switch to dark.
 
-Use `python`, not `python3`, on this machine (Python 3.12.0). Stack is `nextjs`; do not pass `--stack shadcn` or `react-native`.
+### Palette
 
-### The design system for this project
+Deep jade-green and ivory, with four accent hues. Names come from the mockup; keep them.
 
-Generated for "healthcare clinic physiotherapy staff dashboard". Treat these as the project's decisions, not suggestions.
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `--ink` | `#FBF7EE` | `#0A1D18` | Page background |
+| `--ink-2` | `#F3EDDF` | `#0E2620` | Sidebar gradient top |
+| `--surface` | `#FFFFFF` | `#122C25` | Cards, panels |
+| `--surface-2` | `#F6F1E4` | `#183931` | Nested cards |
+| `--surface-3` | `#EFE7D2` | `#1E453A` | Deepest surface |
+| `--ivory` | `#16302A` | `#F5EFE3` | Primary text |
+| `--ivory-dim` | `rgba(22,48,42,0.64)` | `rgba(245,239,227,0.62)` | Secondary text |
+| `--ivory-faint` | `rgba(22,48,42,0.42)` | `rgba(245,239,227,0.38)` | Tertiary text |
+| `--jade` | `#1E9C73` | `#33C793` | Primary action, success |
+| `--gold` | `#B87517` | `#F0A83B` | In-progress, warning |
+| `--orchid` | `#AD3D6D` | `#D9598E` | Destructive, negative trend |
+| `--sky` | `#25839F` | `#5FB8D6` | Informational |
+| `--line` | `rgba(20,40,32,0.10)` | `rgba(245,239,227,0.08)` | Borders |
 
-**Style: Accessible & Ethical** — the skill's recommendation for healthcare. High contrast, 16px+ body text, keyboard navigable, WCAG AAA, semantic HTML. Rated Excellent for performance, which matters because PRD-04 FR4 targets low-end Android.
+Each accent has a `-dim` variant for pill and badge backgrounds. Radii: `--radius-lg` 22px, `--radius-md` 14px, `--radius-sm` 9px.
 
-**Palette** (calm cyan + health green), as CSS custom properties:
+### Typography
 
-| Token | Value |
-|---|---|
-| `--color-primary` | `#0891B2` |
-| `--color-on-primary` | `#FFFFFF` |
-| `--color-secondary` | `#22D3EE` |
-| `--color-accent` | `#059669` |
-| `--color-background` | `#ECFEFF` |
-| `--color-foreground` | `#164E63` |
-| `--color-muted` | `#E8F1F6` |
-| `--color-border` | `#A5F3FC` |
-| `--color-destructive` | `#DC2626` |
-| `--color-ring` | `#0891B2` |
+**Fraunces** (serif, `opsz` variable) for display: page headings, panel titles, KPI values, brand name, pull quotes. Set `font-feature-settings:'ss01'`. **Space Grotesk** for everything else. Tabular figures via `font-variant-numeric: tabular-nums` on times, amounts and percentages.
 
-**Typography: Fira Sans** for UI, **Fira Code** for tabular and numeric data (appointment times, amounts, patient codes). Chosen for dashboards and admin panels.
+### Signature elements — use these, do not reinvent
 
-**Required effects:** focus rings 3–4px, ARIA labels, skip links, 44×44px minimum touch targets, `prefers-reduced-motion` respected.
+- **Goniometer KPI dials.** A semicircular arc gauge with tick marks and a needle, mirroring the instrument physiotherapists use to measure joint range of motion. `buildGoniometer()` in the mockup is the reference implementation. This is the project's standard KPI component; sub-project 9's reports reuse it.
+- **Collapsible sidebar**, 264px expanded, 84px collapsed, with labels that animate to zero width.
+- **Radial gradient page wash** — two large soft tints over `--ink`.
+- **Status pills** in `-dim` backgrounds: jade confirmed, gold in-progress, sky arrived, neutral done.
+- **Dashed row separators** in timelines, solid elsewhere.
+- **Card entry animation**, staggered 40ms, wrapped in `prefers-reduced-motion: no-preference`.
 
-**Avoid:** bright neon colours, motion-heavy animation, AI purple/pink gradients.
+### Non-negotiable UI checks
 
-### Pre-delivery checklist for every UI change
-
-- [ ] No emojis as icons — use SVG (Heroicons or Lucide)
-- [ ] `cursor-pointer` on every clickable element
-- [ ] Hover states with 150–300ms transitions
-- [ ] Text contrast at least 4.5:1 in light mode
-- [ ] Focus states visible for keyboard navigation
-- [ ] `prefers-reduced-motion` respected
-- [ ] Checked at 375px, 768px, 1024px and 1440px
+- Light theme is the default; the dark toggle must work
+- No emojis as icons — inline SVG with `stroke="currentColor"`
+- `cursor-pointer` on every clickable element
+- `:focus-visible` outline 2px `--jade`, offset 3px
+- 44×44px minimum touch targets
+- Text contrast at least 4.5:1 **verified**, not assumed — the deep-green palette needs checking, not trusting
+- `prefers-reduced-motion` respected
+- Checked at 375px, 620px, 1180px and 1440px, the mockup's own breakpoints
 
 ## Styling stack: Tailwind only
 
-Tailwind CSS v4, CSS-first configuration (`@import "tailwindcss"` in `src/app/globals.css`). Design tokens are CSS custom properties in `@theme`.
+Tailwind CSS v4, CSS-first configuration. The mockup's custom properties become `@theme` tokens in `src/app/globals.css`; both theme blocks are plain CSS.
 
-**Do not add shadcn/ui, Radix, or `class-variance-authority`.** This is a deliberate decision: shadcn's non-interactive primitives are plain Tailwind anyway, and each Radix package adds 8–20KB gzip of client JS. PRD-00 §2 requires avoiding heavy client bundles.
+**Do not add shadcn/ui, Radix, or `class-variance-authority`.** Each Radix package costs 8–20KB gzip of client JS, and PRD-00 §2 requires avoiding heavy client bundles. The mockup proves the whole design works with zero dependencies.
 
-Where an accessible interactive component is genuinely needed (modal, combobox), build it with native HTML first — `<dialog>`, `<details>`, `<select>` — and only reach for a library if native cannot do it. Raise it before adding the dependency.
+Where an accessible interactive component is needed, use native HTML first — `<dialog>`, `<details>`, `<select>`, `<input type="time">`. Raise it before adding any dependency.
 
-Watch bundle size in two specific places: charts in sub-project 9 (prefer server-rendered SVG over Recharts, which is ~100KB gzip) and any date-picker temptation in sub-project 3.
+Charts are hand-rolled SVG, as in the mockup. Do not add Recharts (~100KB gzip).
+
+## Verification: keep it fast
+
+Slow feedback is a real cost. Per-change, run only what the change can break:
+
+```bash
+npx tsc --noEmit                       # ~30s — always
+npx vitest run tests/unit/foo.test.ts  # ~5s  — the file you touched
+```
+
+Reserve the expensive commands for the end of a work slice, not every task:
+
+```bash
+npx eslint . && npx next build && npx vitest run && npx playwright test   # ~4 min
+```
+
+`npx next build` almost never catches what `tsc --noEmit` did not. Do not run it per task.
+
+**Never run `npm install` casually** — it takes ~14 minutes here because Defender scans every extracted file.
 
 ## Architecture
 
 Single Next.js 16 App Router deployable, ESM (`"type": "module"`).
 
 - Route handlers under `src/app/api` parse, authorize, delegate to `src/server/**`, serialize. No business logic in handlers.
+- Admin form mutations use Server Actions; the `/api/auth/*` handlers stay REST because the Capacitor app and Playwright consume them.
 - Route groups: `(auth)`, `(public)`, `(portal)`, `(staff)`.
 - Authorization is three server-side layers: `getCurrentUser()` is the only path to a user; `requireSession()`/`requireRole()` throw so an unchecked call fails closed; service-layer ownership checks hold the row-level rules. Navigation visibility is not a security boundary.
 - `src/middleware.ts` only redirects requests with no cookie. It never authorizes — the edge runtime cannot reach Prisma.
@@ -81,11 +105,9 @@ Single Next.js 16 App Router deployable, ESM (`"type": "module"`).
 
 ## Environment
 
-- Windows. PostgreSQL 17 on **port 5435**, user `postgres`, trust auth. Databases `teta_physio_dev` and `teta_physio_test`. Production is Neon (`sslmode=require`, plus `DIRECT_URL` for migrations).
+- Windows. PostgreSQL 17 on **port 5435**, user `postgres`, trust auth. Databases `teta_physio_dev` and `teta_physio_test`. Production is Neon (`sslmode=require`, plus `DIRECT_URL` for migrations); Neon DNS resolution intermittently fails on first attempt — retry before diagnosing.
 - psql: `"/c/Program Files/PostgreSQL/17/bin/psql.exe"`
-- `npm install` takes ~14 minutes on this machine (Defender scanning). Do not run it casually.
-- Verify with `npx tsc --noEmit`, `npx eslint .`, `npx next build`, `npx vitest run`, `npx playwright test`.
 
 ## Sub-projects
 
-Foundation (schema, auth, RBAC, security, shells) is sub-project 1 of 11. The staff and portal dashboards currently in `(staff)` and `(portal)` are deliberate placeholders — real screens arrive in sub-projects 3, 5, 7, 9 and 10. Each sub-project gets its own spec, plan, and implementation cycle under `docs/superpowers/`.
+Foundation (schema, auth, RBAC, security, shells) is sub-project 1 of 11 and is complete. Sub-project 2 is clinic configuration. The staff and portal dashboards in place now are placeholders — the real dashboard, built to `doc/clinic-dashboard.html`, arrives with sub-projects 3, 9 and 10. Each sub-project gets its own spec, plan, and implementation cycle under `docs/superpowers/`.
