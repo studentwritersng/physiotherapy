@@ -1,0 +1,700 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────── Enums ───────────────────────────
+// All values are snake_case (spec §3.7). Display casing is a UI concern.
+
+enum UserRole {
+  patient
+  therapist
+  receptionist
+  admin
+}
+
+enum UserStatus {
+  active
+  inactive
+}
+
+enum PatientStatus {
+  lead
+  registered
+  inactive
+}
+
+enum AppointmentStatus {
+  scheduled
+  confirmed
+  arrived
+  in_session
+  completed
+  cancelled
+  no_show
+}
+
+enum BookedVia {
+  public
+  portal
+  staff
+}
+
+enum EpisodeStatus {
+  active
+  discharged
+}
+
+enum TreatmentPlanStatus {
+  active
+  completed
+  on_hold
+}
+
+enum DocumentType {
+  referral
+  medical_report
+  xray
+  mri
+  other
+}
+
+enum InvoiceStatus {
+  unpaid
+  partially_paid
+  paid
+}
+
+enum PaymentMethod {
+  cash
+  bank_transfer
+  pos
+  online_gateway
+}
+
+enum NotificationType {
+  confirmation
+  reminder
+  reschedule
+  cancellation
+  payment
+}
+
+enum NotificationChannel {
+  sms
+  whatsapp
+  email
+  push
+}
+
+enum NotificationStatus {
+  queued
+  sent
+  delivered
+  failed
+}
+
+enum VerificationPurpose {
+  login_otp
+  password_reset
+  phone_verification
+}
+
+enum DevicePlatform {
+  android
+  ios
+}
+
+// ─────────────────────── Identity & auth ───────────────────────
+
+model User {
+  id                String     @id @default(uuid()) @db.Uuid
+  name              String
+  email             String?    @unique
+  phone             String     @unique
+  passwordHash      String     @map("password_hash")
+  role              UserRole
+  status            UserStatus @default(active)
+  mustResetPassword Boolean    @default(false) @map("must_reset_password")
+  lastLoginAt       DateTime?  @map("last_login_at") @db.Timestamptz
+  deletedAt         DateTime?  @map("deleted_at") @db.Timestamptz
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  sessions              Session[]
+  verificationCodes     VerificationCode[]
+  deviceTokens          DeviceToken[]
+  patient               Patient?
+  staffProfile          StaffProfile?
+  availability          TherapistAvailability[]
+  appointments          Appointment[]              @relation("TherapistAppointments")
+  cancelledAppointments Appointment[]              @relation("CancelledByUser")
+  statusChanges         AppointmentStatusHistory[]
+  episodes              EpisodeOfCare[]
+  assessments           Assessment[]
+  sessionNotes          SessionNote[]              @relation("NoteAuthor")
+  editedNotes           SessionNote[]              @relation("NoteEditor")
+  treatmentPlans        TreatmentPlan[]
+  uploadedDocuments     PatientDocument[]
+  createdInvoices       Invoice[]
+  recordedPayments      Payment[]
+  auditEntries          AuditLog[]
+
+  @@index([role])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+/// Opaque session tokens. Only the SHA-256 hash is stored, so a table leak
+/// yields nothing usable (spec §3.4, §5.2).
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  tokenHash  String   @unique @map("token_hash")
+  userId     String   @map("user_id") @db.Uuid
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz
+  lastUsedAt DateTime @default(now()) @map("last_used_at") @db.Timestamptz
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// OTP and password-reset codes. Created in Foundation, used in sub-project 8
+/// once a MessageProvider can actually send (spec §3.1).
+model VerificationCode {
+  id         String              @id @default(uuid()) @db.Uuid
+  userId     String?             @map("user_id") @db.Uuid
+  identifier String
+  codeHash   String              @map("code_hash")
+  purpose    VerificationPurpose
+  expiresAt  DateTime            @map("expires_at") @db.Timestamptz
+  consumedAt DateTime?           @map("consumed_at") @db.Timestamptz
+  attempts   Int                 @default(0)
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([identifier, purpose])
+  @@index([expiresAt])
+  @@map("verification_codes")
+}
+
+/// Failed-login tracking for the rate limiter. Throttles, never locks (spec §5.4).
+model LoginAttempt {
+  id          String   @id @default(uuid()) @db.Uuid
+  identifier  String
+  ipAddress   String?  @map("ip_address")
+  successful  Boolean  @default(false)
+  attemptedAt DateTime @default(now()) @map("attempted_at") @db.Timestamptz
+
+  @@index([identifier, attemptedAt])
+  @@map("login_attempts")
+}
+
+model StaffProfile {
+  id             String  @id @default(uuid()) @db.Uuid
+  userId         String  @unique @map("user_id") @db.Uuid
+  title          String?
+  qualifications String?
+  bio            String?
+  photoUrl       String? @map("photo_url")
+  publicVisible  Boolean @default(true) @map("public_visible")
+  /// PRD-01 FR3's admin-granted "view all patients" flag. No PRD gave it a
+  /// storage location (spec §3.6).
+  canViewAllPatients Boolean @default(false) @map("can_view_all_patients")
+  sortOrder          Int     @default(0) @map("sort_order")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("staff_profiles")
+}
+
+// ─────────────────── Patients & clinic config ───────────────────
+
+model Patient {
+  id                    String        @id @default(uuid()) @db.Uuid
+  patientCode           String        @unique @map("patient_code")
+  userId                String?       @unique @map("user_id") @db.Uuid
+  fullName              String        @map("full_name")
+  phone                 String
+  email                 String?
+  dateOfBirth           DateTime?     @map("date_of_birth") @db.Date
+  address               String?
+  emergencyContactName  String?       @map("emergency_contact_name")
+  emergencyContactPhone String?       @map("emergency_contact_phone")
+  basicMedicalInfo      String?       @map("basic_medical_info")
+  status                PatientStatus @default(lead)
+  consentGiven          Boolean       @default(false) @map("consent_given")
+  consentDate           DateTime?     @map("consent_date") @db.Timestamptz
+  optOutNotifications   Boolean       @default(false) @map("opt_out_notifications")
+  /// Set when identifying fields are overwritten on an erasure request (spec §3.2).
+  anonymisedAt          DateTime?     @map("anonymised_at") @db.Timestamptz
+  deletedAt             DateTime?     @map("deleted_at") @db.Timestamptz
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  user              User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appointments      Appointment[]
+  intakeForms       IntakeForm[]
+  episodes          EpisodeOfCare[]
+  assessments       Assessment[]
+  sessionNotes      SessionNote[]
+  treatmentPlans    TreatmentPlan[]
+  documents         PatientDocument[]
+  invoices          Invoice[]
+  notificationLog   NotificationLog[]
+  notificationQueue NotificationQueue[]
+
+  @@index([phone])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("patients")
+}
+
+model Service {
+  id                     String    @id @default(uuid()) @db.Uuid
+  name                   String
+  slug                   String    @unique
+  description            String?
+  defaultDurationMinutes Int       @default(45) @map("default_duration_minutes")
+  defaultPrice           Decimal   @default(0) @map("default_price") @db.Decimal(12, 2)
+  imageUrl               String?   @map("image_url")
+  active                 Boolean   @default(true)
+  sortOrder              Int       @default(0) @map("sort_order")
+  deletedAt              DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  appointments Appointment[]
+
+  @@index([active])
+  @@map("services")
+}
+
+/// Singleton config row, pinned to id = 1 so a second row is impossible.
+model ClinicSettings {
+  id              Int     @id @default(1)
+  clinicName      String  @default("TetaPhysio") @map("clinic_name")
+  tagline         String?
+  logoUrl         String? @map("logo_url")
+  aboutContent    String? @map("about_content")
+  contactPhone    String? @map("contact_phone")
+  contactWhatsapp String? @map("contact_whatsapp")
+  contactEmail    String? @map("contact_email")
+  address         String?
+  /// JSON keyed by day of week, e.g. { "monday": { "open": "08:00", "close": "17:00" } }
+  openingHours            Json     @default("{}") @map("opening_hours")
+  bookingLeadTimeHours    Int      @default(0) @map("booking_lead_time_hours")
+  rescheduleCutoffHours   Int      @default(2) @map("reschedule_cutoff_hours")
+  cancellationCutoffHours Int      @default(2) @map("cancellation_cutoff_hours")
+  reminderLeadHours       Int[]    @default([24, 2]) @map("reminder_lead_hours")
+  /// Master switch over every per-plan patient_visible flag (spec §3.3).
+  showClinicalToPatients  Boolean  @default(false) @map("show_clinical_to_patients")
+  onlinePaymentsEnabled   Boolean  @default(false) @map("online_payments_enabled")
+  receptionistSeesRevenue Boolean  @default(false) @map("receptionist_sees_revenue")
+  therapistSeesOwnStats   Boolean  @default(true) @map("therapist_sees_own_stats")
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("clinic_settings")
+}
+
+model Testimonial {
+  id          String   @id @default(uuid()) @db.Uuid
+  patientName String   @map("patient_name")
+  content     String
+  published   Boolean  @default(false)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([published])
+  @@map("testimonials")
+}
+
+/// One row is either a recurring weekly window (dayOfWeek set) or a one-off
+/// date (specificDate set). PRD-11 left this fork unresolved; this is the
+/// decision. isBlocked marks leave and holidays.
+model TherapistAvailability {
+  id           String    @id @default(uuid()) @db.Uuid
+  therapistId  String    @map("therapist_id") @db.Uuid
+  dayOfWeek    Int?      @map("day_of_week")
+  specificDate DateTime? @map("specific_date") @db.Date
+  startTime    String    @map("start_time")
+  endTime      String    @map("end_time")
+  isBlocked    Boolean   @default(false) @map("is_blocked")
+  reason       String?
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  therapist User @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  @@index([therapistId, dayOfWeek])
+  @@index([therapistId, specificDate])
+  @@map("therapist_availability")
+}
+
+// ───────────────────────── Appointments ─────────────────────────
+
+model Appointment {
+  id             String            @id @default(uuid()) @db.Uuid
+  patientId      String            @map("patient_id") @db.Uuid
+  therapistId    String?           @map("therapist_id") @db.Uuid
+  serviceId      String            @map("service_id") @db.Uuid
+  episodeId      String?           @map("episode_id") @db.Uuid
+  scheduledStart DateTime          @map("scheduled_start") @db.Timestamptz
+  scheduledEnd   DateTime          @map("scheduled_end") @db.Timestamptz
+  status         AppointmentStatus @default(scheduled)
+  bookedVia      BookedVia         @map("booked_via")
+  reasonForVisit String?           @map("reason_for_visit")
+  /// PRD-09 wants cancellation reasons; PRD-11 had no column (spec §3.10).
+  cancellationReason String?   @map("cancellation_reason")
+  cancelledById      String?   @map("cancelled_by_id") @db.Uuid
+  /// True when staff overrode a full slot per PRD-03 FR5.
+  wasForceBooked     Boolean   @default(false) @map("was_force_booked")
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  patient         Patient                    @relation(fields: [patientId], references: [id])
+  therapist       User?                      @relation("TherapistAppointments", fields: [therapistId], references: [id], onDelete: SetNull)
+  service         Service                    @relation(fields: [serviceId], references: [id])
+  episode         EpisodeOfCare?             @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  cancelledBy     User?                      @relation("CancelledByUser", fields: [cancelledById], references: [id], onDelete: SetNull)
+  statusHistory   AppointmentStatusHistory[]
+  sessionNote     SessionNote?
+  invoices        Invoice[]
+  notificationLog NotificationLog[]
+
+  @@index([scheduledStart])
+  @@index([status])
+  @@index([patientId])
+  @@index([therapistId, scheduledStart])
+  @@map("appointments")
+}
+
+model AppointmentStatusHistory {
+  id            String            @id @default(uuid()) @db.Uuid
+  appointmentId String            @map("appointment_id") @db.Uuid
+  status        AppointmentStatus
+  changedById   String?           @map("changed_by_id") @db.Uuid
+  changedAt     DateTime          @default(now()) @map("changed_at") @db.Timestamptz
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  changedBy   User?       @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([appointmentId])
+  @@map("appointment_status_history")
+}
+
+// ────────────────────────── Clinical ──────────────────────────
+
+model IntakeForm {
+  id                 String    @id @default(uuid()) @db.Uuid
+  patientId          String    @map("patient_id") @db.Uuid
+  reasonForVisit     String?   @map("reason_for_visit")
+  medicalHistory     String?   @map("medical_history")
+  previousInjuries   String?   @map("previous_injuries")
+  previousSurgeries  String?   @map("previous_surgeries")
+  currentMedications String?   @map("current_medications")
+  allergies          String?
+  referringDoctor    String?   @map("referring_doctor")
+  submittedAt        DateTime? @map("submitted_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@map("intake_forms")
+}
+
+/// PRD-05 treats "episode of care" as load-bearing (one initial assessment per
+/// episode) but no PRD modelled it (spec §3.10).
+model EpisodeOfCare {
+  id                 String        @id @default(uuid()) @db.Uuid
+  patientId          String        @map("patient_id") @db.Uuid
+  primaryTherapistId String?       @map("primary_therapist_id") @db.Uuid
+  reason             String
+  status             EpisodeStatus @default(active)
+  startedAt          DateTime      @default(now()) @map("started_at") @db.Timestamptz
+  dischargedAt       DateTime?     @map("discharged_at") @db.Timestamptz
+
+  patient          Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  primaryTherapist User?             @relation(fields: [primaryTherapistId], references: [id], onDelete: SetNull)
+  appointments     Appointment[]
+  assessments      Assessment[]
+  sessionNotes     SessionNote[]
+  treatmentPlans   TreatmentPlan[]
+  documents        PatientDocument[]
+
+  @@index([patientId, status])
+  @@map("episodes_of_care")
+}
+
+model Assessment {
+  id             String    @id @default(uuid()) @db.Uuid
+  patientId      String    @map("patient_id") @db.Uuid
+  therapistId    String    @map("therapist_id") @db.Uuid
+  episodeId      String?   @map("episode_id") @db.Uuid
+  chiefComplaint String?   @map("chief_complaint")
+  history        String?
+  examination    String?
+  assessment     String?
+  treatmentGoals String?   @map("treatment_goals")
+  treatmentPlan  String?   @map("treatment_plan")
+  editedAt       DateTime? @map("edited_at") @db.Timestamptz
+  editedById     String?   @map("edited_by_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  patient   Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist User           @relation(fields: [therapistId], references: [id])
+  episode   EpisodeOfCare? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
+  @@index([patientId])
+  @@map("assessments")
+}
+
+model SessionNote {
+  id                    String    @id @default(uuid()) @db.Uuid
+  appointmentId         String    @unique @map("appointment_id") @db.Uuid
+  patientId             String    @map("patient_id") @db.Uuid
+  therapistId           String    @map("therapist_id") @db.Uuid
+  episodeId             String?   @map("episode_id") @db.Uuid
+  subjective            String?
+  objective             String?
+  treatmentProvided     String?   @map("treatment_provided")
+  patientResponse       String?   @map("patient_response")
+  exercisesInstructions String?   @map("exercises_instructions")
+  nextPlan              String?   @map("next_plan")
+  editedAt              DateTime? @map("edited_at") @db.Timestamptz
+  editedById            String?   @map("edited_by_id") @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  appointment Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  patient     Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist   User           @relation("NoteAuthor", fields: [therapistId], references: [id])
+  editedBy    User?          @relation("NoteEditor", fields: [editedById], references: [id], onDelete: SetNull)
+  episode     EpisodeOfCare? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
+  @@index([patientId, createdAt])
+  @@map("session_notes")
+}
+
+model TreatmentPlan {
+  id          String              @id @default(uuid()) @db.Uuid
+  patientId   String              @map("patient_id") @db.Uuid
+  therapistId String              @map("therapist_id") @db.Uuid
+  episodeId   String?             @map("episode_id") @db.Uuid
+  goals       String?
+  planDetails String?             @map("plan_details")
+  frequency   String?
+  duration    String?
+  focusAreas  String?             @map("focus_areas")
+  status      TreatmentPlanStatus @default(active)
+  /// Per-plan visibility, gated by clinic_settings.show_clinical_to_patients (spec §3.3).
+  patientVisible Boolean  @default(false) @map("patient_visible")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  patient   Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist User           @relation(fields: [therapistId], references: [id])
+  episode   EpisodeOfCare? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  exercises Exercise[]
+
+  @@index([patientId, status])
+  @@map("treatment_plans")
+}
+
+model Exercise {
+  id              String  @id @default(uuid()) @db.Uuid
+  treatmentPlanId String  @map("treatment_plan_id") @db.Uuid
+  name            String
+  description     String?
+  imageUrl        String? @map("image_url")
+  patientVisible  Boolean @default(false) @map("patient_visible")
+  sortOrder       Int     @default(0) @map("sort_order")
+
+  treatmentPlan TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+
+  @@index([treatmentPlanId])
+  @@map("exercises")
+}
+
+model PatientDocument {
+  id           String       @id @default(uuid()) @db.Uuid
+  patientId    String       @map("patient_id") @db.Uuid
+  episodeId    String?      @map("episode_id") @db.Uuid
+  uploadedById String       @map("uploaded_by_id") @db.Uuid
+  documentType DocumentType @map("document_type")
+  fileUrl      String       @map("file_url")
+  fileName     String       @map("file_name")
+  fileSize     Int          @map("file_size")
+  mimeType     String       @map("mime_type")
+  uploadedAt   DateTime     @default(now()) @map("uploaded_at") @db.Timestamptz
+
+  patient    Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  episode    EpisodeOfCare? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  uploadedBy User           @relation(fields: [uploadedById], references: [id])
+
+  @@index([patientId])
+  @@map("patient_documents")
+}
+
+// ─────────────────────────── Billing ───────────────────────────
+
+model Invoice {
+  id            String        @id @default(uuid()) @db.Uuid
+  invoiceNumber String        @unique @map("invoice_number")
+  patientId     String        @map("patient_id") @db.Uuid
+  appointmentId String?       @map("appointment_id") @db.Uuid
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(12, 2)
+  status        InvoiceStatus @default(unpaid)
+  notes         String?
+  createdById   String        @map("created_by_id") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  patient     Patient       @relation(fields: [patientId], references: [id])
+  appointment Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdBy   User          @relation(fields: [createdById], references: [id])
+  items       InvoiceItem[]
+  payments    Payment[]
+
+  @@index([patientId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid()) @db.Uuid
+  invoiceId   String  @map("invoice_id") @db.Uuid
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Decimal @map("unit_price") @db.Decimal(12, 2)
+  amount      Decimal @db.Decimal(12, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id                String        @id @default(uuid()) @db.Uuid
+  invoiceId         String        @map("invoice_id") @db.Uuid
+  amount            Decimal       @db.Decimal(12, 2)
+  method            PaymentMethod
+  reference         String?
+  /// PRD-07 FR2 requires notes; PRD-11 had only reference (spec §3.10).
+  notes             String?
+  providerReference String?       @map("provider_reference")
+  /// Null for gateway/automated payments.
+  recordedById      String?       @map("recorded_by_id") @db.Uuid
+  paidAt            DateTime      @default(now()) @map("paid_at") @db.Timestamptz
+
+  invoice    Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  recordedBy User?   @relation(fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([paidAt])
+  @@map("payments")
+}
+
+// ──────────────────────── Notifications ────────────────────────
+
+model NotificationTemplate {
+  id           String              @id @default(uuid()) @db.Uuid
+  type         NotificationType
+  channel      NotificationChannel
+  subject      String?
+  templateText String              @map("template_text")
+  active       Boolean             @default(true)
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([type, channel])
+  @@map("notification_templates")
+}
+
+/// The outbox PRD-08 §6 calls `notifications` but PRD-11 never defined.
+/// Carries the retry counter and error reason PRD-08 FR2 requires (spec §3.10).
+model NotificationQueue {
+  id           String              @id @default(uuid()) @db.Uuid
+  patientId    String              @map("patient_id") @db.Uuid
+  type         NotificationType
+  channel      NotificationChannel
+  recipient    String
+  body         String
+  status       NotificationStatus  @default(queued)
+  scheduledFor DateTime            @map("scheduled_for") @db.Timestamptz
+  retryCount   Int                 @default(0) @map("retry_count")
+  lastError    String?             @map("last_error")
+  providerMessageId String?        @map("provider_message_id")
+  sentAt            DateTime?      @map("sent_at") @db.Timestamptz
+  relatedAppointmentId String?     @map("related_appointment_id") @db.Uuid
+  relatedInvoiceId     String?     @map("related_invoice_id") @db.Uuid
+  createdAt            DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledFor])
+  @@map("notification_queue")
+}
+
+model NotificationLog {
+  id                String             @id @default(uuid()) @db.Uuid
+  patientId         String             @map("patient_id") @db.Uuid
+  type              NotificationType
+  channel           NotificationChannel
+  status            NotificationStatus
+  recipient         String
+  providerMessageId String?            @map("provider_message_id")
+  errorReason       String?            @map("error_reason")
+  sentAt            DateTime           @default(now()) @map("sent_at") @db.Timestamptz
+  relatedAppointmentId String?         @map("related_appointment_id") @db.Uuid
+  relatedInvoiceId     String?         @map("related_invoice_id") @db.Uuid
+
+  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [relatedAppointmentId], references: [id], onDelete: SetNull)
+
+  @@index([patientId, sentAt])
+  @@map("notification_log")
+}
+
+model DeviceToken {
+  id         String         @id @default(uuid()) @db.Uuid
+  userId     String         @map("user_id") @db.Uuid
+  token      String         @unique
+  platform   DevicePlatform
+  lastSeenAt DateTime       @default(now()) @map("last_seen_at") @db.Timestamptz
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("device_tokens")
+}
+
+// ──────────────────────────── Audit ────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  ipAddress  String?  @map("ip_address")
+  metadata   Json?
+  timestamp  DateTime @default(now()) @db.Timestamptz
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, timestamp])
+  @@index([action])
+  @@map("audit_log")
+}
