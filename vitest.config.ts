@@ -15,6 +15,11 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    // Every integration file shares one Postgres database and truncates it in
+    // beforeEach. Run files serially: in parallel, one file's TRUNCATE deletes
+    // rows another file just inserted, and concurrent TRUNCATE ... CASCADE
+    // deadlocks. Per-file isolation would need a schema per worker.
+    fileParallelism: false,
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
   },
