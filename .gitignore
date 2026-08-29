@@ -59,3 +59,7 @@ ios/
 # Misc
 *.tsbuildinfo
 .vercel
+
+# Subagent-driven development scratch: ledgers, briefs, review packages.
+# Git history is the durable record; this is working state.
+.superpowers/
