@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hash } from "@node-rs/argon2";
+import { slugify } from "../src/lib/slug.js";
 
 const ARGON2_OPTIONS = { memoryCost: 19456, timeCost: 2, parallelism: 1 } as const;
 
@@ -22,13 +23,6 @@ const SERVICES = [
   { name: "Post-Surgery Rehabilitation", minutes: 60, price: "22000.00" },
   { name: "Pain Management", minutes: 45, price: "15000.00" },
 ];
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 /** PRD-08 §3. Placeholders are interpolated by sub-project 8. */
 const TEMPLATES = [
