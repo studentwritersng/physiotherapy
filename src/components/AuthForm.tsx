@@ -57,9 +57,9 @@ export function AuthForm({
   }
 
   return (
-    <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-      {subtitle && <p className="mt-1 text-sm text-gray-600">{subtitle}</p>}
+    <div className="w-full max-w-sm rounded-lg border border-line bg-surface p-7 shadow-[0_18px_34px_-22px_rgba(20,40,32,0.22)]">
+      <h1 className="font-display text-2xl font-semibold text-ivory">{title}</h1>
+      {subtitle && <p className="mt-1 text-sm text-ivory-dim">{subtitle}</p>}
 
       <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4" noValidate>
         {fields.map((field) => (
@@ -68,19 +68,23 @@ export function AuthForm({
 
         {/* aria-live so a screen reader announces the error without a focus move. */}
         <div aria-live="polite" role="status">
-          {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>}
+          {error && (
+            <p className="rounded-md bg-orchid-dim px-3.5 py-2.5 text-sm font-medium text-orchid">
+              {error}
+            </p>
+          )}
         </div>
 
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-blue-700 px-4 py-2 text-base font-medium text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
+          className="min-h-11 cursor-pointer rounded-md bg-jade px-5 py-2.5 text-base font-semibold text-white transition-opacity duration-200 hover:opacity-90 disabled:opacity-60"
         >
           {submitting ? "Please wait…" : submitLabel}
         </button>
       </form>
 
-      {footer && <div className="mt-4 text-sm text-gray-600">{footer}</div>}
+      {footer && <div className="mt-4 text-sm text-ivory-dim">{footer}</div>}
     </div>
   );
 }

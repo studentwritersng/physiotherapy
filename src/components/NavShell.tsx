@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { NavLink } from "@/lib/nav";
 import type { SessionUser } from "@/server/auth/session";
 import { LogoutButton } from "./LogoutButton";
+import { ThemeToggle } from "./ThemeToggle";
 
 const ROLE_LABELS: Record<SessionUser["role"], string> = {
   admin: "Administrator",
@@ -21,11 +22,13 @@ export function NavShell({
 }) {
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="border-b border-gray-200 bg-white md:w-64 md:border-b-0 md:border-r">
+      <aside className="border-b border-line bg-gradient-to-b from-ink-2 to-ink md:w-64 md:border-b-0 md:border-r">
         <div className="p-4">
-          <p className="text-lg font-semibold text-gray-900">TetaPhysio</p>
-          <p className="mt-1 truncate text-sm text-gray-700">{user.name}</p>
-          <p className="text-xs text-gray-500">{ROLE_LABELS[user.role]}</p>
+          <p className="font-display text-lg font-semibold text-ivory">TetaPhysio</p>
+          <p className="mt-1 truncate text-sm text-ivory-dim">{user.name}</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-ivory-faint">
+            {ROLE_LABELS[user.role]}
+          </p>
         </div>
 
         <nav aria-label="Main navigation" className="px-2 pb-4">
@@ -35,7 +38,7 @@ export function NavShell({
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="block rounded-md px-3 py-2 text-sm text-gray-800 hover:bg-gray-100"
+                    className="block cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-ivory-dim transition-colors duration-150 hover:bg-surface hover:text-ivory"
                   >
                     {link.label}
                   </Link>
@@ -47,10 +50,10 @@ export function NavShell({
                   <span
                     aria-disabled="true"
                     title={`Coming in ${link.note}`}
-                    className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-gray-400"
+                    className="flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium text-ivory-faint"
                   >
                     {link.label}
-                    <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] uppercase">
+                    <span className="ml-2 rounded bg-track px-1.5 py-0.5 text-[10px] uppercase tracking-wider">
                       soon
                     </span>
                   </span>
@@ -60,8 +63,9 @@ export function NavShell({
           </ul>
         </nav>
 
-        <div className="border-t border-gray-200 p-4">
+        <div className="flex items-center justify-between border-t border-line p-4">
           <LogoutButton />
+          <ThemeToggle />
         </div>
       </aside>
 

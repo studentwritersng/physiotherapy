@@ -1,1 +1,147 @@
 @import "tailwindcss";
+
+/*
+ * Design tokens from doc/clinic-dashboard.html. Deep jade-green and ivory.
+ *
+ * Light is the default, so its values sit on :root and dark is opt-in via
+ * html[data-theme="dark"]. The mockup is arranged the other way round; this
+ * inversion avoids a flash of dark before hydration.
+ *
+ * Tailwind v4 is CSS-first: a name under @theme becomes a utility, so
+ * --color-jade yields text-jade, bg-jade and border-jade.
+ *
+ * Contrast was measured (WCAG 2.x relative luminance), not assumed. The
+ * mockup's light-theme jade (#1E9C73), gold (#B87517), sky (#25839F) and the
+ * low-alpha ivory-dim/faint values all fall below 4.5:1 as *small text* on
+ * white, though they are fine as fills, pills and borders. Each hue therefore
+ * has a *-text variant used for text only, and ivory-dim/faint alphas were
+ * raised. Verified ratios on white: jade-text 5.36, gold-text 6.26,
+ * sky-text 6.03, ivory-dim(.78) 6.97, ivory-faint(.68) 5.06.
+ */
+@theme {
+  --color-ink: #fbf7ee;
+  --color-ink-2: #f3eddf;
+  --color-surface: #ffffff;
+  --color-surface-2: #f6f1e4;
+  --color-surface-3: #efe7d2;
+  --color-line: rgba(20, 40, 32, 0.1);
+  --color-line-strong: rgba(20, 40, 32, 0.17);
+  --color-ivory: #16302a;
+  --color-ivory-dim: rgba(22, 48, 42, 0.78);
+  --color-ivory-faint: rgba(22, 48, 42, 0.68);
+  --color-jade: #1e9c73;
+  --color-jade-text: #15795a;
+  --color-jade-dim: rgba(30, 156, 115, 0.12);
+  --color-gold: #b87517;
+  --color-gold-text: #8a5410;
+  --color-gold-dim: rgba(184, 117, 23, 0.12);
+  --color-orchid: #ad3d6d;
+  --color-orchid-dim: rgba(173, 61, 109, 0.12);
+  --color-sky: #25839f;
+  --color-sky-text: #1c6b83;
+  --color-sky-dim: rgba(37, 131, 159, 0.12);
+  --color-track: rgba(22, 48, 42, 0.08);
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: 9px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+}
+
+/*
+ * Dark theme. Tailwind's @theme cannot vary by selector, so the raw custom
+ * properties are overridden here and the utilities follow automatically.
+ */
+html[data-theme="dark"] {
+  --color-ink: #0a1d18;
+  --color-ink-2: #0e2620;
+  --color-surface: #122c25;
+  --color-surface-2: #183931;
+  --color-surface-3: #1e453a;
+  --color-line: rgba(245, 239, 227, 0.08);
+  --color-line-strong: rgba(245, 239, 227, 0.14);
+  --color-ivory: #f5efe3;
+  --color-ivory-dim: rgba(245, 239, 227, 0.62);
+  --color-ivory-faint: rgba(245, 239, 227, 0.52);
+  --color-jade: #33c793;
+  --color-jade-text: #33c793;
+  --color-jade-dim: rgba(51, 199, 147, 0.16);
+  --color-gold: #f0a83b;
+  --color-gold-text: #f0a83b;
+  --color-gold-dim: rgba(240, 168, 59, 0.16);
+  --color-orchid: #e06a9b;
+  --color-orchid-dim: rgba(217, 89, 142, 0.16);
+  --color-sky: #5fb8d6;
+  --color-sky-text: #5fb8d6;
+  --color-sky-dim: rgba(95, 184, 214, 0.16);
+  --color-track: rgba(245, 239, 227, 0.08);
+}
+
+/* The mockup's two soft radial washes over the page background. */
+body {
+  background:
+    radial-gradient(1100px 620px at 84% -8%, var(--color-jade-dim), transparent 60%),
+    radial-gradient(900px 500px at -6% 8%, var(--color-orchid-dim), transparent 55%),
+    var(--color-ink);
+  min-height: 100vh;
+}
+
+.font-display {
+  font-feature-settings: "ss01";
+}
+
+/* Amounts, times and percentages line up in a column. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-jade);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--color-jade-dim);
+  color: var(--color-ivory);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* The mockup's staggered card entry. */
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 0.5s ease both;
+  }
+  .rise:nth-child(2) {
+    animation-delay: 0.04s;
+  }
+  .rise:nth-child(3) {
+    animation-delay: 0.08s;
+  }
+  .rise:nth-child(4) {
+    animation-delay: 0.12s;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

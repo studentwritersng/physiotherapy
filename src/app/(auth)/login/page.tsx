@@ -22,7 +22,7 @@ export default function StaffLoginPage() {
       footer={
         <p>
           Are you a patient?{" "}
-          <Link className="text-blue-700 underline" href="/portal/login">
+          <Link className="cursor-pointer font-medium text-jade-text underline hover:opacity-80" href="/portal/login">
             Use the patient portal
           </Link>
         </p>

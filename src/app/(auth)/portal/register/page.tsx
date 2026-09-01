@@ -31,7 +31,7 @@ export default function PortalRegisterPage() {
       footer={
         <p>
           Already have an account?{" "}
-          <Link className="text-blue-700 underline" href="/portal/login">
+          <Link className="cursor-pointer font-medium text-jade-text underline hover:opacity-80" href="/portal/login">
             Log in
           </Link>
         </p>
