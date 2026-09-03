@@ -32,11 +32,17 @@
   --color-jade: #1e9c73;
   --color-jade-text: #15795a;
   --color-jade-dim: rgba(30, 156, 115, 0.12);
+  --color-btn-ink: #08201a;
   --color-gold: #b87517;
   --color-gold-text: #8a5410;
   --color-gold-dim: rgba(184, 117, 23, 0.12);
   --color-orchid: #ad3d6d;
   --color-orchid-dim: rgba(173, 61, 109, 0.12);
+  /* A deeper destructive for solid fills (buttons). The mockup's orchid is
+     great as a fill on pills and borders but fails WCAG with white text in
+     light mode (~3.0:1) — Material design 700 keeps it readable while staying
+     in the same hue family. */
+  --color-destructive: #c2185b;
   --color-sky: #25839f;
   --color-sky-text: #1c6b83;
   --color-sky-dim: rgba(37, 131, 159, 0.12);
@@ -68,11 +74,13 @@ html[data-theme="dark"] {
   --color-jade: #33c793;
   --color-jade-text: #33c793;
   --color-jade-dim: rgba(51, 199, 147, 0.16);
+  --color-btn-ink: #08201a;
   --color-gold: #f0a83b;
   --color-gold-text: #f0a83b;
   --color-gold-dim: rgba(240, 168, 59, 0.16);
   --color-orchid: #e06a9b;
   --color-orchid-dim: rgba(217, 89, 142, 0.16);
+  --color-destructive: #c2185b;
   --color-sky: #5fb8d6;
   --color-sky-text: #5fb8d6;
   --color-sky-dim: rgba(95, 184, 214, 0.16);
@@ -119,7 +127,9 @@ body {
   }
 }
 
-/* The mockup's staggered card entry. */
+/* The mockup's staggered card entry. Defined but not yet wired in this slice;
+   sub-project 9's dashboard cards will apply it. Kept so the global rule still
+   covers the design intent when those cards ship. */
 @media (prefers-reduced-motion: no-preference) {
   .rise {
     animation: rise 0.5s ease both;

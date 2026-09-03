@@ -5,11 +5,20 @@ import { NextResponse, type NextRequest } from "next/server";
  * authorize: middleware runs on the edge runtime and cannot reach Prisma, so the
  * real decision happens in requireSession/requireRole (spec §5.3). A forged
  * cookie gets past this and is then rejected server-side.
+ *
+ * Also forwards the request pathname to a request header so server components
+ * can know which route they are rendering — the only way to get a pathname from
+ * inside a server component, where `usePathname()` is unavailable.
  */
 const COOKIE = process.env.SESSION_COOKIE_NAME ?? "tp_session";
+const PATHNAME_HEADER = "x-tp-pathname";
 
 export function middleware(req: NextRequest) {
-  if (req.cookies.has(COOKIE)) return NextResponse.next();
+  if (req.cookies.has(COOKIE)) {
+    const response = NextResponse.next();
+    response.headers.set(PATHNAME_HEADER, req.nextUrl.pathname);
+    return response;
+  }
 
   const { pathname, search } = req.nextUrl;
   const loginPath = pathname.startsWith("/portal") ? "/portal/login" : "/login";

@@ -13,7 +13,7 @@ export function FormStatus({ state }: { state: ActionState }) {
   return (
     <div aria-live="polite" role="status">
       {state.ok === true && (
-        <p className="rounded-md bg-jade-dim px-3 py-2 text-sm font-medium text-jade">
+        <p className="rounded-md bg-jade-dim px-3 py-2 text-sm font-medium text-jade-text">
           {state.message}
         </p>
       )}

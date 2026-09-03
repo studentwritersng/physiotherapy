@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { requireRole } from "@/server/auth/rbac";
 
 const TABS = [
@@ -13,6 +14,14 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   // for authorization — the same belt-and-braces rule Foundation applies.
   await requireRole("admin");
 
+  // The active tab is the longest matching href, so /staff/settings/services
+  // highlights "Services" rather than "Clinic".
+  const pathname = (await headers()).get("x-tp-pathname") ?? "";
+  const activeHref =
+    TABS.map((t) => t.href)
+      .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+      .sort((a, b) => b.length - a.length)[0] ?? "/staff/settings";
+
   return (
     <div className="flex flex-col gap-6">
       <header>
@@ -24,16 +33,25 @@ export default async function SettingsLayout({ children }: { children: React.Rea
 
       <nav aria-label="Settings sections" className="border-b border-line">
         <ul className="flex flex-wrap gap-1">
-          {TABS.map((tab) => (
-            <li key={tab.href}>
-              <Link
-                href={tab.href}
-                className="inline-flex min-h-11 cursor-pointer items-center rounded-t-md px-4 py-2 text-sm font-medium text-ivory transition-colors duration-150 hover:bg-surface-2 focus:outline-none focus:ring-3 focus:ring-jade"
-              >
-                {tab.label}
-              </Link>
-            </li>
-          ))}
+          {TABS.map((tab) => {
+            const isActive = tab.href === activeHref;
+            return (
+              <li key={tab.href}>
+                <Link
+                  href={tab.href}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`inline-flex min-h-11 cursor-pointer items-center rounded-t-md px-4 py-2 text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-3 focus:ring-jade ${
+                    isActive
+                      ? "border-b-2 border-jade text-jade-text"
+                      : "text-ivory-dim hover:bg-surface-2 hover:text-ivory"
+                  }`}
+                  style={isActive ? { background: "var(--color-jade-dim)" } : undefined}
+                >
+                  {tab.label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 

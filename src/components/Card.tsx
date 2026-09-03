@@ -13,7 +13,7 @@ export function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-line bg-white p-6">
+    <section className="rounded-lg border border-line bg-surface p-6">
       <h2 className="text-lg font-semibold text-ivory">{title}</h2>
       {description && <p className="mt-1 text-sm text-ivory-dim">{description}</p>}
       <div className="mt-4">{children}</div>
