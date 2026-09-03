@@ -1,6 +1,6 @@
 # Clinic Configuration Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the four admin-only clinic configuration screens (settings, services, therapist availability, content) and the service layer that sub-project 3's booking engine will consume.
 
@@ -75,7 +75,7 @@ Every task's requirements implicitly include this section.
 
 Light is this project's default theme. The mockup has dark on `:root` and light on `html[data-theme="light"]`; invert that so light is the base and dark is opt-in, which avoids a flash of dark on first paint.
 
-- [ ] **Step 1: Write the token block into `globals.css`**
+- [x] **Step 1: Write the token block into `globals.css`**
 
 Replace the whole file:
 
@@ -215,7 +215,7 @@ body {
 }
 ```
 
-- [ ] **Step 2: Load the fonts and set the default theme**
+- [x] **Step 2: Load the fonts and set the default theme**
 
 Replace `src/app/layout.tsx`:
 
@@ -260,7 +260,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 If the build fails because it cannot reach Google Fonts, report BLOCKED rather than switching to a CSS `@import` — self-hosting is the point.
 
-- [ ] **Step 3: Create the theme toggle**
+- [x] **Step 3: Create the theme toggle**
 
 `src/components/ThemeToggle.tsx`, following the mockup's sun/moon button:
 
@@ -317,7 +317,7 @@ export function ThemeToggle() {
 }
 ```
 
-- [ ] **Step 4: Extend `FormField.tsx` and move it onto the tokens**
+- [x] **Step 4: Extend `FormField.tsx` and move it onto the tokens**
 
 Later tasks depend on this exact prop signature — add every prop, not only the ones this task uses.
 
@@ -400,7 +400,7 @@ export function FormField({
 
 `min-h-11` is 44px, the touch-target minimum. The focus ring comes from the global `:focus-visible` rule, so no per-input focus classes are needed.
 
-- [ ] **Step 5: Move the remaining Foundation components onto the tokens**
+- [x] **Step 5: Move the remaining Foundation components onto the tokens**
 
 In `src/components/AuthForm.tsx`:
 
@@ -425,17 +425,17 @@ In `src/components/LogoutButton.tsx` and `src/app/page.tsx`: `text-jade hover:op
 
 In `src/app/(auth)/layout.tsx`: drop the `bg-gray-50` — the body gradient now provides the background.
 
-- [ ] **Step 6: Verify no raw palette utilities survive**
+- [x] **Step 6: Verify no raw palette utilities survive**
 
 Run: `grep -rnE "(gray|blue|red|cyan|emerald)-[0-9]{2,3}" src/ --include=*.tsx --include=*.ts`
 Expected: no output.
 
-- [ ] **Step 7: Typecheck**
+- [x] **Step 7: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: clean.
 
-- [ ] **Step 8: Check the themes and contrast by eye and by measurement**
+- [x] **Step 8: Check the themes and contrast by eye and by measurement**
 
 ```bash
 npx next build && (npx next start -p 3200 &) && sleep 12
@@ -452,12 +452,12 @@ Kill the server:
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 3200 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force }"
 ```
 
-- [ ] **Step 9: Confirm the Foundation login journeys still pass**
+- [x] **Step 9: Confirm the Foundation login journeys still pass**
 
 Run: `npx playwright test --project=chromium`
 Expected: 14 passed. The specs assert on roles and accessible names, not CSS classes, so a correct restyle cannot break them. If one fails you changed markup structure — revert that part rather than editing the spec.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add src/app/globals.css src/app/layout.tsx src/components src/app/page.tsx "src/app/(auth)/layout.tsx"
@@ -497,7 +497,7 @@ they cover this restyle unchanged."
 
 These are the pure primitives Task 3's `resolveAvailability` composes. Getting them right in isolation is what makes that function trustworthy.
 
-- [ ] **Step 1: Write the failing slug test**
+- [x] **Step 1: Write the failing slug test**
 
 `tests/unit/slug.test.ts`:
 
@@ -532,12 +532,12 @@ describe("slugify", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npx vitest run tests/unit/slug.test.ts`
 Expected: FAIL — cannot resolve `@/lib/slug`.
 
-- [ ] **Step 3: Implement `src/lib/slug.ts`**
+- [x] **Step 3: Implement `src/lib/slug.ts`**
 
 ```ts
 /**
@@ -553,12 +553,12 @@ export function slugify(name: string): string {
 }
 ```
 
-- [ ] **Step 4: Run it to verify it passes**
+- [x] **Step 4: Run it to verify it passes**
 
 Run: `npx vitest run tests/unit/slug.test.ts`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Point the seed at the shared helper**
+- [x] **Step 5: Point the seed at the shared helper**
 
 In `prisma/seed.ts`, delete the local `function slugify(...)` block and import it instead. The seed runs under `tsx` outside Next's module resolution, so it needs a relative path with the `.js` extension, matching how it already imports the Prisma client:
 
@@ -566,7 +566,7 @@ In `prisma/seed.ts`, delete the local `function slugify(...)` block and import i
 import { slugify } from"../src/lib/slug.js";
 ```
 
-- [ ] **Step 6: Verify the seed still works and is still idempotent**
+- [x] **Step 6: Verify the seed still works and is still idempotent**
 
 Run: `npx prisma db seed && npx prisma db seed`
 Expected: `Seed complete.` twice, no unique-constraint error.
@@ -574,7 +574,7 @@ Expected: `Seed complete.` twice, no unique-constraint error.
 Then: `npx vitest run tests/integration/seed.test.ts`
 Expected: PASS, 9 tests. The existing assertion that `services[0].slug ==="orthopedic-musculoskeletal-physiotherapy"` proves the extracted helper behaves identically.
 
-- [ ] **Step 7: Write the failing time-arithmetic test**
+- [x] **Step 7: Write the failing time-arithmetic test**
 
 `tests/unit/time.test.ts`:
 
@@ -707,12 +707,12 @@ describe("intersectWindows", () => {
 });
 ```
 
-- [ ] **Step 8: Run it to verify it fails**
+- [x] **Step 8: Run it to verify it fails**
 
 Run: `npx vitest run tests/unit/time.test.ts`
 Expected: FAIL — cannot resolve `@/lib/time`.
 
-- [ ] **Step 9: Implement `src/lib/time.ts`**
+- [x] **Step 9: Implement `src/lib/time.ts`**
 
 ```ts
 /**
@@ -791,17 +791,17 @@ export function intersectWindows(a: TimeWindow[], b: TimeWindow[]): TimeWindow[]
 }
 ```
 
-- [ ] **Step 10: Run it to verify it passes**
+- [x] **Step 10: Run it to verify it passes**
 
 Run: `npx vitest run tests/unit/time.test.ts`
 Expected: PASS, 21 tests.
 
-- [ ] **Step 11: Verify typecheck and lint**
+- [x] **Step 11: Verify typecheck and lint**
 
 Run: `npx tsc --noEmit && npx eslint .`
 Expected: both clean.
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add src/lib/slug.ts src/lib/time.ts tests/unit/slug.test.ts tests/unit/time.test.ts prisma/seed.ts
@@ -837,7 +837,7 @@ two, truncation at a boundary, and windows that merely touch being merged."
 
 The resolver is the contract sub-project 3's booking engine depends on. It takes no database handle and reads no clock, so every branch is testable in isolation.
 
-- [ ] **Step 1: Write the failing schema test**
+- [x] **Step 1: Write the failing schema test**
 
 `tests/unit/clinic-schema.test.ts`:
 
@@ -1081,12 +1081,12 @@ describe("testimonialSchema", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npx vitest run tests/unit/clinic-schema.test.ts`
 Expected: FAIL — cannot resolve `@/lib/zod/clinic`.
 
-- [ ] **Step 3: Implement `src/lib/zod/clinic.ts`**
+- [x] **Step 3: Implement `src/lib/zod/clinic.ts`**
 
 Note the `checkbox` and `numeric` helpers: a `FormData` gives every value as a string, and an unchecked checkbox is absent entirely rather than `"false"`.
 
@@ -1269,12 +1269,12 @@ export type AvailabilityInput = z.infer<typeof availabilitySchema>;
 export type TestimonialInput = z.infer<typeof testimonialSchema>;
 ```
 
-- [ ] **Step 4: Run it to verify it passes**
+- [x] **Step 4: Run it to verify it passes**
 
 Run: `npx vitest run tests/unit/clinic-schema.test.ts`
 Expected: PASS, 26 tests.
 
-- [ ] **Step 5: Write the failing resolver test**
+- [x] **Step 5: Write the failing resolver test**
 
 `tests/unit/resolve-availability.test.ts`:
 
@@ -1394,12 +1394,12 @@ describe("resolveAvailability", () => {
 });
 ```
 
-- [ ] **Step 6: Run it to verify it fails**
+- [x] **Step 6: Run it to verify it fails**
 
 Run: `npx vitest run tests/unit/resolve-availability.test.ts`
 Expected: FAIL — cannot resolve `@/server/services/availability`.
 
-- [ ] **Step 7: Implement the resolver in `src/server/services/availability.ts`**
+- [x] **Step 7: Implement the resolver in `src/server/services/availability.ts`**
 
 Write only the pure part now; the CRUD functions arrive in Task 5. Do **not** add `import"server-only"` to this file — the resolver is imported by a unit test, and although `vitest.config.ts` aliases `server-only` away, keeping this module free of it makes the purity explicit.
 
@@ -1482,17 +1482,17 @@ export function resolveAvailability(
 }
 ```
 
-- [ ] **Step 8: Run it to verify it passes**
+- [x] **Step 8: Run it to verify it passes**
 
 Run: `npx vitest run tests/unit/resolve-availability.test.ts`
 Expected: PASS, 15 tests.
 
-- [ ] **Step 9: Verify typecheck, lint and the whole suite**
+- [x] **Step 9: Verify typecheck, lint and the whole suite**
 
 Run: `npx tsc --noEmit && npx eslint . && npx vitest run`
 Expected: all clean; the suite grows to 13 files.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add src/lib/zod/clinic.ts src/server/services/availability.ts tests/unit/clinic-schema.test.ts tests/unit/resolve-availability.test.ts
@@ -1535,7 +1535,7 @@ export type ClinicSettingsView = Omit<ClinicSettings,"openingHours"> & {
 };
 ```
 
-- [ ] **Step 1: Write the failing clinic-settings test**
+- [x] **Step 1: Write the failing clinic-settings test**
 
 `tests/integration/clinic-settings.test.ts`:
 
@@ -1641,12 +1641,12 @@ describe("clinic settings", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npx vitest run tests/integration/clinic-settings.test.ts`
 Expected: FAIL — cannot resolve `@/server/services/clinic-settings`.
 
-- [ ] **Step 3: Implement `src/server/services/clinic-settings.ts`**
+- [x] **Step 3: Implement `src/server/services/clinic-settings.ts`**
 
 ```ts
 import"server-only";
@@ -1710,12 +1710,12 @@ export async function updateOpeningHours(hours: OpeningHours): Promise<void> {
 export { EMPTY_OPENING_HOURS };
 ```
 
-- [ ] **Step 4: Run it to verify it passes**
+- [x] **Step 4: Run it to verify it passes**
 
 Run: `npx vitest run tests/integration/clinic-settings.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Write the failing testimonial test**
+- [x] **Step 5: Write the failing testimonial test**
 
 `tests/integration/testimonial.test.ts`:
 
@@ -1819,12 +1819,12 @@ describe("testimonials", () => {
 });
 ```
 
-- [ ] **Step 6: Run it to verify it fails**
+- [x] **Step 6: Run it to verify it fails**
 
 Run: `npx vitest run tests/integration/testimonial.test.ts`
 Expected: FAIL — cannot resolve `@/server/services/testimonial`.
 
-- [ ] **Step 7: Implement `src/server/services/testimonial.ts`**
+- [x] **Step 7: Implement `src/server/services/testimonial.ts`**
 
 ```ts
 import"server-only";
@@ -1873,17 +1873,17 @@ export async function reorderTestimonials(ids: string[]): Promise<void> {
 }
 ```
 
-- [ ] **Step 8: Run it to verify it passes**
+- [x] **Step 8: Run it to verify it passes**
 
 Run: `npx vitest run tests/integration/testimonial.test.ts`
 Expected: PASS, 6 tests.
 
-- [ ] **Step 9: Verify typecheck, lint and the whole suite**
+- [x] **Step 9: Verify typecheck, lint and the whole suite**
 
 Run: `npx tsc --noEmit && npx eslint . && npx vitest run`
 Expected: all clean; 15 files.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add src/server/services/clinic-settings.ts src/server/services/testimonial.ts tests/integration/clinic-settings.test.ts tests/integration/testimonial.test.ts
@@ -1922,7 +1922,7 @@ apply."
 
 `getAvailabilityForDate` is the database-backed wrapper sub-project 3 will call: it loads the rows and the opening hours, then delegates to the pure `resolveAvailability`.
 
-- [ ] **Step 1: Write the failing service-catalog test**
+- [x] **Step 1: Write the failing service-catalog test**
 
 `tests/integration/service-catalog.test.ts`:
 
@@ -2051,12 +2051,12 @@ describe("service catalog", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npx vitest run tests/integration/service-catalog.test.ts`
 Expected: FAIL — cannot resolve `@/server/services/service-catalog`.
 
-- [ ] **Step 3: Implement `src/server/services/service-catalog.ts`**
+- [x] **Step 3: Implement `src/server/services/service-catalog.ts`**
 
 ```ts
 import"server-only";
@@ -2133,12 +2133,12 @@ export async function reorderServices(ids: string[]): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: Run it to verify it passes**
+- [x] **Step 4: Run it to verify it passes**
 
 Run: `npx vitest run tests/integration/service-catalog.test.ts`
 Expected: PASS, 11 tests.
 
-- [ ] **Step 5: Write the failing availability CRUD test**
+- [x] **Step 5: Write the failing availability CRUD test**
 
 `tests/integration/availability.test.ts`:
 
@@ -2361,12 +2361,12 @@ describe("getAvailabilityForDate", () => {
 });
 ```
 
-- [ ] **Step 6: Run it to verify it fails**
+- [x] **Step 6: Run it to verify it fails**
 
 Run: `npx vitest run tests/integration/availability.test.ts`
 Expected: FAIL — `createAvailability` is not exported.
 
-- [ ] **Step 7: Append the CRUD functions to `src/server/services/availability.ts`**
+- [x] **Step 7: Append the CRUD functions to `src/server/services/availability.ts`**
 
 Add these imports at the top of the existing file:
 
@@ -2444,22 +2444,22 @@ export async function getAvailabilityForDate(
 
 Note: `availability.ts` now imports `prisma`, so add `import"server-only"` at the very top of the file — the unit test only imports `resolveAvailability`, and `vitest.config.ts` already aliases `server-only` to an empty module, so the pure test keeps working.
 
-- [ ] **Step 8: Run it to verify it passes**
+- [x] **Step 8: Run it to verify it passes**
 
 Run: `npx vitest run tests/integration/availability.test.ts`
 Expected: PASS, 10 tests.
 
-- [ ] **Step 9: Confirm the pure resolver test still passes**
+- [x] **Step 9: Confirm the pure resolver test still passes**
 
 Run: `npx vitest run tests/unit/resolve-availability.test.ts`
 Expected: PASS, 15 tests. If this now fails on the `server-only` import, the `vitest.config.ts` alias has been disturbed — restore it rather than removing the import.
 
-- [ ] **Step 10: Verify typecheck, lint and the whole suite**
+- [x] **Step 10: Verify typecheck, lint and the whole suite**
 
 Run: `npx tsc --noEmit && npx eslint . && npx vitest run`
 Expected: all clean; 17 files.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add src/server/services/service-catalog.ts src/server/services/availability.ts tests/integration/service-catalog.test.ts tests/integration/availability.test.ts
@@ -2505,7 +2505,7 @@ export type ActionState =
 
 The third variant matters: `useActionState` needs an initial value, and without an explicit idle state the first render would show either a spurious success or a spurious error.
 
-- [ ] **Step 1: Write the failing action-state test**
+- [x] **Step 1: Write the failing action-state test**
 
 `tests/unit/action-state.test.ts`:
 
@@ -2589,12 +2589,12 @@ describe("action state", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npx vitest run tests/unit/action-state.test.ts`
 Expected: FAIL — cannot resolve `@/server/action-state`.
 
-- [ ] **Step 3: Implement `src/server/action-state.ts`**
+- [x] **Step 3: Implement `src/server/action-state.ts`**
 
 No `import"server-only"` here: `ActionState` is the type the client form components consume, so this module is deliberately shared.
 
@@ -2641,12 +2641,12 @@ export function toFieldErrors(error: ZodError, message?: string): ActionState {
 }
 ```
 
-- [ ] **Step 4: Run it to verify it passes**
+- [x] **Step 4: Run it to verify it passes**
 
 Run: `npx vitest run tests/unit/action-state.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Create `SubmitButton.tsx`**
+- [x] **Step 5: Create `SubmitButton.tsx`**
 
 ```tsx
 "use client";
@@ -2685,7 +2685,7 @@ export function SubmitButton({
 }
 ```
 
-- [ ] **Step 6: Create `FormStatus.tsx`**
+- [x] **Step 6: Create `FormStatus.tsx`**
 
 ```tsx
 import type { ActionState } from"@/server/action-state";
@@ -2717,7 +2717,7 @@ export function FormStatus({ state }: { state: ActionState }) {
 }
 ```
 
-- [ ] **Step 7: Create `Card.tsx`**
+- [x] **Step 7: Create `Card.tsx`**
 
 ```tsx
 /**
@@ -2744,12 +2744,12 @@ export function Card({
 }
 ```
 
-- [ ] **Step 8: Verify typecheck, lint and build**
+- [x] **Step 8: Verify typecheck, lint and build**
 
 Run: `npx tsc --noEmit && npx eslint . && npx next build`
 Expected: all clean.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/server/action-state.ts src/components/SubmitButton.tsx src/components/FormStatus.tsx src/components/Card.tsx tests/unit/action-state.test.ts
@@ -2782,7 +2782,7 @@ added at the same moment as its content is often not announced."
   - `actions.ts` exports `saveSettings(prev: ActionState, formData: FormData): Promise<ActionState>` and `saveOpeningHours(prev: ActionState, formData: FormData): Promise<ActionState>`
   - The route `/staff/settings`
 
-- [ ] **Step 1: Create the tab-strip layout**
+- [x] **Step 1: Create the tab-strip layout**
 
 `src/app/(staff)/staff/settings/layout.tsx`:
 
@@ -2832,7 +2832,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
 }
 ```
 
-- [ ] **Step 2: Write the Server Actions**
+- [x] **Step 2: Write the Server Actions**
 
 `src/app/(staff)/staff/settings/actions.ts`:
 
@@ -2907,7 +2907,7 @@ export async function saveOpeningHours(
 }
 ```
 
-- [ ] **Step 3: Create the settings form client component**
+- [x] **Step 3: Create the settings form client component**
 
 `src/app/(staff)/staff/settings/SettingsForm.tsx`:
 
@@ -3036,7 +3036,7 @@ export function SettingsForm({
 }
 ```
 
-- [ ] **Step 4: Create the opening hours editor**
+- [x] **Step 4: Create the opening hours editor**
 
 `src/app/(staff)/staff/settings/OpeningHoursEditor.tsx`:
 
@@ -3150,7 +3150,7 @@ export function OpeningHoursEditor({
 }
 ```
 
-- [ ] **Step 5: Create the page**
+- [x] **Step 5: Create the page**
 
 `src/app/(staff)/staff/settings/page.tsx`:
 
@@ -3189,7 +3189,7 @@ export default async function ClinicSettingsPage() {
 }
 ```
 
-- [ ] **Step 6: Enable the navigation link**
+- [x] **Step 6: Enable the navigation link**
 
 In `src/lib/nav.ts:35`, change the Clinic settings entry:
 
@@ -3199,17 +3199,17 @@ In `src/lib/nav.ts:35`, change the Clinic settings entry:
 
 Drop the `note` — it only applies to unbuilt destinations.
 
-- [ ] **Step 7: Verify the existing nav tests still pass**
+- [x] **Step 7: Verify the existing nav tests still pass**
 
 Run: `npx vitest run tests/unit/nav.test.ts`
 Expected: PASS, 6 tests. `nav.test.ts:45` requires at least one unavailable link, and five remain (Appointments, Patients, Payments, Staff, Reports).
 
-- [ ] **Step 8: Verify typecheck, lint and build**
+- [x] **Step 8: Verify typecheck, lint and build**
 
 Run: `npx tsc --noEmit && npx eslint . && npx next build`
 Expected: all clean. The route list gains `/staff/settings`.
 
-- [ ] **Step 9: Smoke test the screen against a real server**
+- [x] **Step 9: Smoke test the screen against a real server**
 
 ```bash
 npm run db:seed
@@ -3226,7 +3226,7 @@ Kill the server:
 powershell -NoProfile -Command"Get-NetTCPConnection -LocalPort 3200 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force }"
 ```
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add"src/app/(staff)/staff/settings" src/lib/nav.ts
@@ -3263,7 +3263,7 @@ still passes: it requires one unavailable link and five remain."
 
 `toggleServiceActive` returns `void` rather than `ActionState`: it is a one-click action with no fields to validate, so it posts from a plain form and relies on `revalidatePath` to re-render.
 
-- [ ] **Step 1: Write the Server Actions**
+- [x] **Step 1: Write the Server Actions**
 
 `src/app/(staff)/staff/settings/services/actions.ts`:
 
@@ -3329,7 +3329,7 @@ export async function toggleServiceActive(formData: FormData): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Create the service form**
+- [x] **Step 2: Create the service form**
 
 `src/app/(staff)/staff/settings/services/ServiceForm.tsx`:
 
@@ -3426,7 +3426,7 @@ export function ServiceForm({
 }
 ```
 
-- [ ] **Step 3: Create the service list**
+- [x] **Step 3: Create the service list**
 
 `src/app/(staff)/staff/settings/services/ServiceList.tsx`:
 
@@ -3500,7 +3500,7 @@ export function ServiceList({ services }: { services: Service[] }) {
 }
 ```
 
-- [ ] **Step 4: Create the page**
+- [x] **Step 4: Create the page**
 
 `src/app/(staff)/staff/settings/services/page.tsx`:
 
@@ -3536,7 +3536,7 @@ export default async function ServicesPage() {
 }
 ```
 
-- [ ] **Step 5: Surface editing from the list**
+- [x] **Step 5: Surface editing from the list**
 
 PRD-06 §6 asks for add, edit and remove. Create and deactivate are covered; this adds edit without a second screen, using a native `<details>` disclosure — no JavaScript, and closed by default so the table stays scannable.
 
@@ -3631,12 +3631,12 @@ import { Fragment } from"react";
 
 Note: `ServiceForm` renders `id` as a hidden input when `values.id` is present, which is what `editService` reads. Because several forms now share field names on one page, this is fine — each `<form>` scopes its own `FormData`.
 
-- [ ] **Step 6: Verify typecheck, lint and build**
+- [x] **Step 6: Verify typecheck, lint and build**
 
 Run: `npx tsc --noEmit && npx eslint . && npx next build`
 Expected: all clean. The route list gains `/staff/settings/services`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add"src/app/(staff)/staff/settings/services"
@@ -3670,7 +3670,7 @@ in tabular figures, which is what the `tabular` class is for."
 
 The therapist is selected via a search param rather than client state, so the server component can load that therapist's rows directly and the URL is shareable.
 
-- [ ] **Step 1: Write the Server Actions**
+- [x] **Step 1: Write the Server Actions**
 
 `src/app/(staff)/staff/settings/availability/actions.ts`:
 
@@ -3715,7 +3715,7 @@ export async function removeAvailability(formData: FormData): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Create the availability form**
+- [x] **Step 2: Create the availability form**
 
 `src/app/(staff)/staff/settings/availability/AvailabilityForm.tsx`:
 
@@ -3871,7 +3871,7 @@ export function AvailabilityForm({
 }
 ```
 
-- [ ] **Step 3: Create the availability list**
+- [x] **Step 3: Create the availability list**
 
 `src/app/(staff)/staff/settings/availability/AvailabilityList.tsx`:
 
@@ -3980,7 +3980,7 @@ export function AvailabilityList({ rows }: { rows: TherapistAvailability[] }) {
 }
 ```
 
-- [ ] **Step 4: Create the page**
+- [x] **Step 4: Create the page**
 
 `src/app/(staff)/staff/settings/availability/page.tsx`:
 
@@ -4063,12 +4063,12 @@ export default async function AvailabilityPage({
 }
 ```
 
-- [ ] **Step 5: Verify typecheck, lint and build**
+- [x] **Step 5: Verify typecheck, lint and build**
 
 Run: `npx tsc --noEmit && npx eslint . && npx next build`
 Expected: all clean. The route list gains `/staff/settings/availability`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add"src/app/(staff)/staff/settings/availability"
@@ -4100,7 +4100,7 @@ Prisma returns at UTC midnight, and a local read would shift it by a day."
   - `actions.ts` exports `saveAbout(prev: ActionState, formData: FormData): Promise<ActionState>`, `addTestimonial(prev: ActionState, formData: FormData): Promise<ActionState>`, `toggleTestimonialPublished(formData: FormData): Promise<void>`, `removeTestimonial(formData: FormData): Promise<void>`
   - The route `/staff/settings/content`
 
-- [ ] **Step 1: Write the Server Actions**
+- [x] **Step 1: Write the Server Actions**
 
 `src/app/(staff)/staff/settings/content/actions.ts`:
 
@@ -4192,7 +4192,7 @@ export async function removeTestimonial(formData: FormData): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Create the about form**
+- [x] **Step 2: Create the about form**
 
 `src/app/(staff)/staff/settings/content/AboutForm.tsx`:
 
@@ -4242,7 +4242,7 @@ export function AboutForm({
 }
 ```
 
-- [ ] **Step 3: Create the testimonial form**
+- [x] **Step 3: Create the testimonial form**
 
 `src/app/(staff)/staff/settings/content/TestimonialForm.tsx`:
 
@@ -4308,7 +4308,7 @@ export function TestimonialForm({
 }
 ```
 
-- [ ] **Step 4: Create the testimonial list**
+- [x] **Step 4: Create the testimonial list**
 
 `src/app/(staff)/staff/settings/content/TestimonialList.tsx`:
 
@@ -4366,7 +4366,7 @@ export function TestimonialList({ testimonials }: { testimonials: Testimonial[] 
 }
 ```
 
-- [ ] **Step 5: Create the page**
+- [x] **Step 5: Create the page**
 
 `src/app/(staff)/staff/settings/content/page.tsx`:
 
@@ -4408,12 +4408,12 @@ export default async function ContentPage() {
 }
 ```
 
-- [ ] **Step 6: Verify typecheck, lint and build**
+- [x] **Step 6: Verify typecheck, lint and build**
 
 Run: `npx tsc --noEmit && npx eslint . && npx next build`
 Expected: all clean. The route list gains `/staff/settings/content`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add"src/app/(staff)/staff/settings/content"
@@ -4448,7 +4448,7 @@ track."
 
 Like the Foundation suite, every test arms its own precondition so the `mobile` project does not replay specs against state `chromium` already changed, and no run needs `npm run db:reset` first.
 
-- [ ] **Step 1: Add the reset helper**
+- [x] **Step 1: Add the reset helper**
 
 Append to `tests/e2e/helpers/db.ts`:
 
@@ -4482,7 +4482,7 @@ export async function resetClinicConfig(): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Write the E2E spec**
+- [x] **Step 2: Write the E2E spec**
 
 `tests/e2e/clinic-config.spec.ts`:
 
@@ -4822,7 +4822,7 @@ test.describe("settings are admin-only", () => {
 });
 ```
 
-- [ ] **Step 3: Reseed and build, then run the new spec**
+- [x] **Step 3: Reseed and build, then run the new spec**
 
 ```bash
 npx prisma db seed
@@ -4834,12 +4834,12 @@ Expected: all tests pass.
 
 If the two 403 assertions fail with a redirect instead, check what `requireRole` does when it throws inside a server component: Foundation's `(staff)/layout.tsx` redirects a patient but lets a `ForbiddenError` propagate for staff, which Next renders as a 403. If it renders a 500 instead, add an `error.tsx` under `src/app/(staff)/` that renders the message and returns the right status, and note it in the commit.
 
-- [ ] **Step 4: Run the full E2E suite on both projects**
+- [x] **Step 4: Run the full E2E suite on both projects**
 
 Run: `npx playwright test`
 Expected: every spec passes on `chromium` and `mobile` — the Foundation login journeys plus the new clinic-config ones. Because each test arms its own state, the second project needs no reset.
 
-- [ ] **Step 5: Run the whole verification sweep**
+- [x] **Step 5: Run the whole verification sweep**
 
 ```bash
 npx tsc --noEmit
@@ -4851,17 +4851,17 @@ npx playwright test
 
 Expected: all five exit 0. Fix anything that fails before continuing — this is the definition-of-done gate from spec §8.
 
-- [ ] **Step 6: Confirm no migration was created**
+- [x] **Step 6: Confirm no migration was created**
 
 Run: `npx prisma migrate status`
 Expected: the database is in sync and only the Foundation `init` migration exists. Spec §8 item 7. If a migration appeared, something added a schema change this slice did not need — investigate rather than committing it.
 
-- [ ] **Step 7: Verify the design tokens actually took effect**
+- [x] **Step 7: Verify the design tokens actually took effect**
 
 Run: `grep -rnE"(gray|blue|red)-[0-9]{2,3}" src/ --include=*.tsx --include=*.ts`
 Expected: no output. Spec §8 item 6.
 
-- [ ] **Step 8: Update the README**
+- [x] **Step 8: Update the README**
 
 In `README.md`, change the sub-project 2 row to `Done`:
 
@@ -4877,11 +4877,11 @@ specs passing across Desktop Chrome and Pixel 7. `tsc --noEmit`, `eslint .` and
 `next build` all clean.
 ```
 
-- [ ] **Step 9: Tick every checkbox in this plan**
+- [x] **Step 9: Tick every checkbox in this plan**
 
-Change every `- [ ]` to `- [x]` in `docs/superpowers/plans/2026-08-29-clinic-config.md`.
+Change every `- [x]` to `- [x]` in `docs/superpowers/plans/2026-08-29-clinic-config.md`.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add tests/e2e/clinic-config.spec.ts tests/e2e/helpers/db.ts README.md docs/superpowers/plans/2026-08-29-clinic-config.md

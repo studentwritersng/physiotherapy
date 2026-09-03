@@ -30,14 +30,20 @@ async function staffLogin(page: Page, identifier: string, password: string) {
   await page.goto("/login");
   await page.getByLabel("Email or phone number").fill(identifier);
   await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Log in" }).click();
+  await Promise.all([
+    page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 10_000 }),
+    page.getByRole("button", { name: "Log in" }).click(),
+  ]);
 }
 
 async function patientLogin(page: Page, phone: string, password: string) {
   await page.goto("/portal/login");
   await page.getByLabel("Phone number").fill(phone);
   await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Log in" }).click();
+  await Promise.all([
+    page.waitForURL((url) => !url.pathname.startsWith("/portal/login"), { timeout: 10_000 }),
+    page.getByRole("button", { name: "Log in" }).click(),
+  ]);
 }
 
 /** Walks a staff account through the forced-change screen onto the dashboard. */
@@ -45,7 +51,10 @@ async function completeForcedPasswordChange(page: Page, current: string, next: s
   await expect(page).toHaveURL(/\/reset-password/);
   await page.getByLabel("Current password").fill(current);
   await page.getByLabel("New password").fill(next);
-  await page.getByRole("button", { name: "Save password" }).click();
+  await Promise.all([
+    page.waitForURL((url) => !url.pathname.startsWith("/reset-password"), { timeout: 10_000 }),
+    page.getByRole("button", { name: "Save password" }).click(),
+  ]);
 }
 
 /**

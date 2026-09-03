@@ -73,3 +73,31 @@ export async function deletePatientAccount(localPhone: string): Promise<void> {
 export async function disconnect(): Promise<void> {
   await prisma.$disconnect();
 }
+
+/**
+ * Clears the rows the clinic-config journeys create, so each test starts from a
+ * known state and the chromium and mobile projects do not interfere.
+ *
+ * The six seeded services are left in place — the seed owns them and deleting one
+ * would break the seed-count assertions in tests/integration/seed.test.ts. Any
+ * service a test created is removed, and the edit test's price change is reverted
+ * by restoring the seeded values.
+ */
+export async function resetClinicConfig(): Promise<void> {
+  await prisma.testimonial.deleteMany({});
+  await prisma.therapistAvailability.deleteMany({});
+
+  // Reactivate anything a deactivate test switched off.
+  await prisma.service.updateMany({ where: { active: false }, data: { active: true } });
+
+  // Remove services a create test added. The seed's six carry sortOrder 0-5, and
+  // createService sets sortOrder to the current row count, so anything from 6 up
+  // came from a test.
+  await prisma.service.deleteMany({ where: { sortOrder: { gte: 6 } } });
+
+  // Restore the seeded price the edit test changes.
+  await prisma.service.updateMany({
+    where: { slug: "pain-management" },
+    data: { defaultPrice: "15000.00", defaultDurationMinutes: 45, name: "Pain Management" },
+  });
+}
