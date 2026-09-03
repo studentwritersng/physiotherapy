@@ -108,6 +108,20 @@ Single Next.js 16 App Router deployable, ESM (`"type": "module"`).
 - Windows. PostgreSQL 17 on **port 5435**, user `postgres`, trust auth. Databases `teta_physio_dev` and `teta_physio_test`. Production is Neon (`sslmode=require`, plus `DIRECT_URL` for migrations); Neon DNS resolution intermittently fails on first attempt — retry before diagnosing.
 - psql: `"/c/Program Files/PostgreSQL/17/bin/psql.exe"`
 
+## Design principles for every UI slice
+
+The `clinic-dashboard.html` mockup is one execution of one named style recipe. To keep future iterations coherent, every design-heavy sub-project starts with the **three-line brief formula** (from `doc/dream-design-team-kit.html`):
+
+1. **WHO IT'S FOR** — one sentence, one audience. A page for everyone converges to the average.
+2. **HOW IT SHOULD FEEL** — name a recipe from the 25 ("quiet luxury, warm-dark restraint" is what the mockup is). A named recipe carries a palette, a typeface, a spacing system and signature moves; "modern and clean" carries nothing.
+3. **ONE THING TO AVOID** — one explicit ban. Single named anti-goals steer harder than five vague goals.
+
+The 3 banned default AI looks (cream + serif + terracotta / near-black + acid-green / broadsheet hairline editorial) are banned as **defaults**, not as choices — any of them chosen on purpose is fine, but never shipped by accident.
+
+Motion follows the **two-school rule**: Emil Kowalski's restraint for product UI (sub-300ms animations, never default easing) for the patient portal and dashboards; Meng To's cinema for the marketing scroll (GSAP + Lenis + pinned sections) for the public site. Buttons and menus are not a film; the story section is not a form.
+
+Before approving any UI slice, run the **self-check**: the page must look like the chosen recipe and must not look like any of the banned defaults. Compare against `doc/clinic-dashboard.html` for parity of craft.
+
 ## Sub-projects
 
 Foundation (schema, auth, RBAC, security, shells) is sub-project 1 of 11 and is complete. Sub-project 2 is clinic configuration. The staff and portal dashboards in place now are placeholders — the real dashboard, built to `doc/clinic-dashboard.html`, arrives with sub-projects 3, 9 and 10. Each sub-project gets its own spec, plan, and implementation cycle under `docs/superpowers/`.
