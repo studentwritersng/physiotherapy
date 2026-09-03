@@ -57,7 +57,7 @@ export function AuthForm({
   }
 
   return (
-    <div className="w-full max-w-sm rounded-lg border border-line bg-surface p-7 shadow-[0_18px_34px_-22px_rgba(20,40,32,0.22)]">
+    <div className="rise w-full max-w-sm rounded-lg border border-glass-border bg-glass p-7 shadow-glass backdrop-blur-md">
       <h1 className="font-display text-2xl font-semibold text-ivory">{title}</h1>
       {subtitle && <p className="mt-1 text-sm text-ivory-dim">{subtitle}</p>}
 
