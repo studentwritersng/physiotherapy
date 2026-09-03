@@ -32,7 +32,7 @@ export function staffLinksFor(role: UserRole): NavLink[] {
   const adminOnly: NavLink[] = [
     { href: "/staff/staff", label: "Staff", available: false, note: "Sub-project 10" },
     { href: "/staff/reports", label: "Reports", available: false, note: "Sub-project 9" },
-    { href: "/staff/settings", label: "Clinic settings", available: false, note: "Sub-project 2" },
+    { href: "/staff/settings", label: "Clinic settings", available: true },
   ];
 
   switch (role) {
