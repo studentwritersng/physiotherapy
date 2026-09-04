@@ -47,7 +47,11 @@ export function ServiceList({
                   <span className="block tabular text-xs text-ivory-faint">/{service.slug}</span>
                 </th>
                 <td className="py-3 pr-4 tabular">{service.defaultDurationMinutes} min</td>
-                <td className="py-3 pr-4 tabular">₦{service.defaultPrice.toString()}</td>
+                {/* Decimal strips trailing zeros on toString, so format for
+                    display: money renders with kobo precision, always. */}
+                <td className="py-3 pr-4 tabular">
+                  ₦{Number(service.defaultPrice.toString()).toFixed(2)}
+                </td>
                 <td className="py-3 pr-4">
                   {service.active ? (
                     <span className="rounded bg-jade-dim px-2 py-1 text-xs font-medium text-jade-text">
@@ -85,6 +89,7 @@ export function ServiceList({
                       <ServiceForm
                         action={editAction}
                         submitLabel="Save changes"
+                        idPrefix={`edit-${service.id}`}
                         values={{
                           id: service.id,
                           name: service.name,

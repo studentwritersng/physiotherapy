@@ -212,6 +212,25 @@ body {
   min-height: 0;
 }
 
+/* Grid blowout guard: grid items default to min-width:auto (their min-content
+   size), so one long service name in a <select> can force the whole track
+   wider than a phone viewport — measured 495px on a 412px viewport, breaking
+   scroll and click hit-testing on mobile. Replaced elements size to intrinsic
+   width and ignore their container, hence the max-width cap. Harmless on
+   desktop, load-bearing on mobile. */
+.tp-topbar,
+.tp-main {
+  min-width: 0;
+}
+.tp-shell select,
+.tp-shell input,
+.tp-shell textarea {
+  max-width: 100%;
+}
+.tp-shell .grid > * {
+  min-width: 0;
+}
+
 @media (max-width: 1180px) {
   .tp-shell {
     grid-template-columns: 1fr;
@@ -219,38 +238,71 @@ body {
       "topbar"
       "main";
   }
+  /* Mobile: the sidebar is a slide-over drawer, off-canvas until opened.
+     It never participates in the grid down here. */
   .tp-sidebar {
-    display: none;
+    position: fixed;
+    top: var(--layout-pad);
+    bottom: var(--layout-pad);
+    left: var(--layout-pad);
+    width: min(var(--sidebar-w), calc(100vw - 2 * var(--layout-pad) - 3rem));
+    z-index: 50;
+    transform: translateX(calc(-100% - var(--layout-pad) - 1rem));
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Above the page wash, below nothing else interactive. */
+    box-shadow: var(--shadow-glass);
+  }
+  .tp-shell[data-mobile-nav="open"] .tp-sidebar {
+    transform: none;
   }
   .tp-main {
     border-radius: var(--radius-lg);
   }
 }
 
-/* Icon-only sidebar when the rail is collapsed. The labels are already wrapped
-   in .sidebar-label so CSS can hide them. The min-width on the rail gives
-   the icons room to breathe. The grid column follows the rail width so the
-   content card grows into the freed space. */
-.tp-shell[data-collapsed="true"] {
-  grid-template-columns: var(--sidebar-w-collapsed) 1fr;
-}
-.tp-shell[data-collapsed="true"] .tp-sidebar {
-  width: var(--sidebar-w-collapsed);
-}
-.tp-shell[data-collapsed="true"] .tp-sidebar nav {
-  padding-left: 0.625rem;
-  padding-right: 0.625rem;
-}
-.tp-shell[data-collapsed="true"] .tp-sidebar a {
-  justify-content: center;
-  padding-left: 0.625rem;
-  padding-right: 0.625rem;
-}
-.tp-shell[data-collapsed="true"] .sidebar-label {
+/* Drawer backdrop — only ever visible on mobile while the drawer is open. */
+.tp-backdrop {
   display: none;
 }
-.tp-shell[data-collapsed="true"] .sidebar-soon {
-  display: none;
+@media (max-width: 1180px) {
+  .tp-shell[data-mobile-nav="open"] .tp-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(8, 20, 16, 0.45);
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+}
+
+/* Icon-only sidebar when the rail is collapsed — desktop only. Below 1180px
+   the sidebar is a drawer (see above), and the collapsed grid override must
+   not fight the single-column layout: an unscoped rule here previously
+   restored two columns against a display:none sidebar and crushed the page. */
+@media (min-width: 1181px) {
+  .tp-shell[data-collapsed="true"] {
+    grid-template-columns: var(--sidebar-w-collapsed) 1fr;
+  }
+  .tp-shell[data-collapsed="true"] .tp-sidebar {
+    width: var(--sidebar-w-collapsed);
+  }
+  .tp-shell[data-collapsed="true"] .tp-sidebar nav {
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
+  .tp-shell[data-collapsed="true"] .tp-sidebar a {
+    justify-content: center;
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
+  .tp-shell[data-collapsed="true"] .sidebar-label {
+    display: none;
+  }
+  .tp-shell[data-collapsed="true"] .sidebar-soon {
+    display: none;
+  }
 }
 
 @keyframes rise {

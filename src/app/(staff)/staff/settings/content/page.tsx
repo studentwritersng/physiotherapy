@@ -1,5 +1,5 @@
 import { Card } from "@/components/Card";
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 import { getClinicSettings } from "@/server/services/clinic-settings";
 import { listTestimonials } from "@/server/services/testimonial";
 import { addTestimonial, saveAbout } from "./actions";
@@ -10,7 +10,7 @@ import { TestimonialList } from "./TestimonialList";
 export const metadata = { title: "Website content — TetaPhysio" };
 
 export default async function ContentPage() {
-  await requireRole("admin");
+  await requirePageRole("admin");
 
   const [settings, testimonials] = await Promise.all([getClinicSettings(), listTestimonials()]);
 

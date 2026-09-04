@@ -22,6 +22,17 @@ export function BookingForm({
 }) {
   const [state, formAction] = useActionState(action, IDLE_STATE);
   const errors = state.ok === false ? state.fieldErrors : {};
+  // Keys the form has no dedicated display for (serviceId, dateKey,
+  // therapistId, noPreference are hidden step-1 inputs). Without this, a
+  // failure on any of them shows the "Check the highlighted fields" summary
+  // next to no highlight at all.
+  const unmapped = Object.entries(errors).filter(
+    ([key]) => key !== "startTime" && key !== "patientId" && key !== "reasonForVisit",
+  );
+  // No slots means no booking is possible for this combination — submitting
+  // would fail on the missing startTime every time. Disable the rest of the
+  // form instead of letting it fail cryptically.
+  const canBook = slots.length > 0;
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -40,10 +51,17 @@ export function BookingForm({
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-medium text-ivory">Available slots</legend>
-        {slots.length === 0 ? (
-          <p className="text-sm text-ivory-dim">
-            No free slots for this combination. Try another day, therapist, or service.
-          </p>
+        {!canBook ? (
+          <div className="rounded-md border border-dashed border-line p-4">
+            <p className="text-sm font-medium text-ivory">No free slots for this combination.</p>
+            <p className="mt-1 text-sm text-ivory-dim">
+              Either the day is fully booked, or no working hours are set yet.{" "}
+              <a href="/staff/settings/availability" className="font-medium text-jade-text underline hover:opacity-80">
+                Set therapist hours in Settings → Availability
+              </a>
+              , then come back and pick a day.
+            </p>
+          </div>
         ) : (
           <ul className="grid gap-2 sm:grid-cols-2">
             {slots.map((slot) => (
@@ -76,7 +94,8 @@ export function BookingForm({
           id="patientId"
           name="patientId"
           required
-          className="min-h-11 cursor-pointer rounded-md border border-line bg-surface px-3 py-2 text-base text-ivory focus:outline-none focus:ring-3 focus:ring-jade"
+          disabled={!canBook}
+          className="min-h-11 cursor-pointer rounded-md border border-line bg-surface px-3 py-2 text-base text-ivory focus:outline-none focus:ring-3 focus:ring-jade disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="">Choose a patient</option>
           {patients.map((p) => (
@@ -97,10 +116,38 @@ export function BookingForm({
         error={errors.reasonForVisit}
       />
 
+      {unmapped.length > 0 && (
+        <div
+          role="alert"
+          className="rounded-md border border-gold/40 bg-gold-dim px-3.5 py-2.5 text-sm text-ivory"
+        >
+          <p className="font-medium">Something needs fixing before this booking can save:</p>
+          <ul className="mt-1 flex list-disc flex-col gap-0.5 pl-5">
+            {unmapped.map(([key, message]) => (
+              <li key={key}>{message}</li>
+            ))}
+          </ul>
+          <p className="mt-1 text-ivory-dim">
+            If this mentions the service, therapist or day, re-select them in Step 1 above.
+          </p>
+        </div>
+      )}
+
       <FormStatus state={state} />
 
       <div>
-        <SubmitButton>Save booking</SubmitButton>
+        {canBook ? (
+          <SubmitButton>Save booking</SubmitButton>
+        ) : (
+          <button
+            type="button"
+            disabled
+            title="Choose a combination with free slots first"
+            className="min-h-11 cursor-not-allowed rounded-md bg-surface-2 px-4 py-2 text-base font-semibold text-ivory-faint"
+          >
+            Save booking
+          </button>
+        )}
       </div>
     </form>
   );

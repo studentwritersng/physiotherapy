@@ -34,7 +34,9 @@ export function TestimonialList({ testimonials }: { testimonials: Testimonial[] 
                 name="nextPublished"
                 value={testimonial.published ? "false" : "true"}
               />
-              <SubmitButton>{testimonial.published ? "Unpublish" : "Publish"}</SubmitButton>
+              <SubmitButton variant={testimonial.published ? "secondary" : "primary"}>
+                {testimonial.published ? "Unpublish" : "Publish"}
+              </SubmitButton>
             </form>
 
             <form action={removeTestimonial}>

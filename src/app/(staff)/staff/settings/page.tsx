@@ -1,5 +1,5 @@
 import { Card } from "@/components/Card";
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 import { getClinicSettings } from "@/server/services/clinic-settings";
 import { saveOpeningHours, saveSettings } from "./actions";
 import { OpeningHoursEditor } from "./OpeningHoursEditor";
@@ -8,7 +8,7 @@ import { SettingsForm } from "./SettingsForm";
 export const metadata = { title: "Clinic settings — TetaPhysio" };
 
 export default async function ClinicSettingsPage() {
-  await requireRole("admin");
+  await requirePageRole("admin");
 
   const settings = await getClinicSettings();
 

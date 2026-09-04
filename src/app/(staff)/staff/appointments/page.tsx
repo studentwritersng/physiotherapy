@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { AutoSubmitForm } from "@/components/AutoSubmitForm";
 import { Card } from "@/components/Card";
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 import { getDaySchedule } from "@/server/services/schedule";
 import { listTherapists } from "@/server/services/availability";
 import { TIMEZONE } from "@/lib/constants";
@@ -33,7 +34,7 @@ export default async function AppointmentsPage({
 }: {
   searchParams: Promise<{ date?: string; therapist?: string; view?: string }>;
 }) {
-  const user = await requireRole("admin", "therapist", "receptionist");
+  const user = await requirePageRole("admin", "therapist", "receptionist");
   const [{ date, therapist }, therapists] = await Promise.all([
     searchParams,
     listTherapists(),
@@ -76,8 +77,8 @@ export default async function AppointmentsPage({
         </div>
       </header>
 
-      <Card title="Filter by therapist" description="Leave empty to see everyone on shift.">
-        <form method="get" className="flex flex-wrap items-end gap-3">
+      <Card title="Filter by therapist" description="Changes apply the moment you pick — no Apply click needed.">
+        <AutoSubmitForm className="flex flex-wrap items-end gap-3">
           <input type="hidden" name="date" value={dateKey} />
           <div className="flex flex-col gap-1">
             <label htmlFor="therapist" className="text-sm font-medium text-ivory">
@@ -103,7 +104,7 @@ export default async function AppointmentsPage({
           >
             Apply
           </button>
-        </form>
+        </AutoSubmitForm>
       </Card>
 
       <Card title="Agenda" description="Sorted by start time. Cancelled rows stay visible.">

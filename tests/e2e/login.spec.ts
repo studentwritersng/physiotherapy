@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { openNavForMobile } from "./helpers/nav";
 import {
   armPatientAccount,
   armStaffAccount,
@@ -26,10 +27,22 @@ test.afterAll(async () => {
   await disconnect();
 });
 
-async function staffLogin(page: Page, identifier: string, password: string) {
+async function staffLogin(
+  page: Page,
+  identifier: string,
+  password: string,
+  opts: { expectSuccess?: boolean } = {},
+) {
+  const { expectSuccess = true } = opts;
   await page.goto("/login");
   await page.getByLabel("Email or phone number").fill(identifier);
   await page.getByLabel("Password").fill(password);
+  if (!expectSuccess) {
+    // A failed login correctly stays put — awaiting navigation here would
+    // time out by design, so click bare and let the caller assert the error.
+    await page.getByRole("button", { name: "Log in" }).click();
+    return;
+  }
   await Promise.all([
     page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 10_000 }),
     page.getByRole("button", { name: "Log in" }).click(),
@@ -68,6 +81,9 @@ async function completeForcedPasswordChange(page: Page, current: string, next: s
  * on its own.
  */
 async function navLabels(page: Page): Promise<string[]> {
+  // On mobile viewports the nav lives in a closed drawer — open it first.
+  // No-op on desktop where the hamburger is display:none.
+  await openNavForMobile(page);
   const nav = page.getByRole("navigation", { name: "Main navigation" });
   await expect(nav).toBeVisible();
 
@@ -96,7 +112,7 @@ test.describe("staff authentication", () => {
     await page.getByRole("button", { name: "Save password" }).click();
 
     await expect(page).toHaveURL(/\/staff$/);
-    await expect(page.getByRole("heading", { name: /Welcome, Clinic Admin/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Good to see you/ })).toBeVisible();
   });
 
   test("the forced-change screen blocks the dashboard until the password is changed", async ({
@@ -156,7 +172,7 @@ test.describe("staff authentication", () => {
   test("wrong password shows an error and stays on the login page", async ({ page }) => {
     await armStaffAccount(ADMIN_EMAIL, ADMIN_PASSWORD, false);
 
-    await staffLogin(page, ADMIN_EMAIL, "definitelywrong1");
+    await staffLogin(page, ADMIN_EMAIL, "definitelywrong1", { expectSuccess: false });
 
     await expect(page.getByRole("status")).toContainText(/Incorrect login details/i);
     await expect(page).toHaveURL(/\/login/);

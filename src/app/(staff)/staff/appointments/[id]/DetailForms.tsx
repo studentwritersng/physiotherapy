@@ -1,11 +1,34 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { FormStatus } from "@/components/FormStatus";
 import { SubmitButton } from "@/components/SubmitButton";
 import { IDLE_STATE, type ActionState } from "@/server/action-state";
 
 type FormAction = (prev: ActionState, formData: FormData) => Promise<ActionState>;
+
+/**
+ * useActionState updates local form state but does NOT refetch server
+ * components — so after a successful mutation the page keeps showing
+ * pre-mutation data (e.g. the Cancel card persisting after a successful
+ * cancel, or the old time after a reschedule). Refresh once per success.
+ * Plain <form action> (no useActionState) refreshes automatically, which is
+ * why the status buttons never had this problem.
+ */
+function useRefreshOnSuccess(state: ActionState) {
+  const router = useRouter();
+  const done = useRef(false);
+  useEffect(() => {
+    if (state.ok === true && !done.current) {
+      done.current = true;
+      router.refresh();
+    }
+    if (state.ok !== true) {
+      done.current = false;
+    }
+  }, [state, router]);
+}
 
 export function RescheduleForm({
   action,
@@ -16,6 +39,7 @@ export function RescheduleForm({
 }) {
   const [state, formAction] = useActionState(action, IDLE_STATE);
   const errors = state.ok === false ? state.fieldErrors : {};
+  useRefreshOnSuccess(state);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -69,6 +93,7 @@ export function RescheduleForm({
 export function CancelForm({ action, appointmentId }: { action: FormAction; appointmentId: string }) {
   const [state, formAction] = useActionState(action, IDLE_STATE);
   const errors = state.ok === false ? state.fieldErrors : {};
+  useRefreshOnSuccess(state);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">

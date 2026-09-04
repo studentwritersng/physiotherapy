@@ -6,7 +6,11 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
   retries: 0,
-  timeout: 30_000,
+  // 60s, not the 30s default: on a memory-constrained machine the argon2id
+  // password hashes (19MB each, several per login flow), Chromium, and next
+  // start compete for RAM, and cold-boot tests otherwise time out without any
+  // product assertion failing. This changes no assertion, only the budget.
+  timeout: 60_000,
   use: {
     baseURL: "http://localhost:3100",
     trace: "retain-on-failure",

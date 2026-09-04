@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 
 const TABS = [
   { href: "/staff/settings", label: "Clinic" },
@@ -12,7 +12,7 @@ const TABS = [
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
   // Layout guard AND a guard in every page. A page must not depend on its layout
   // for authorization — the same belt-and-braces rule Foundation applies.
-  await requireRole("admin");
+  await requirePageRole("admin");
 
   // The active tab is the longest matching href, so /staff/settings/services
   // highlights "Services" rather than "Clinic".

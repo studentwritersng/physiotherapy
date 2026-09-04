@@ -58,19 +58,30 @@ export function NavShell({
     });
   }
 
+  // Mobile drawer state is separate from the desktop rail: below 1180px the
+  // sidebar is off-canvas until opened, and opening it must not touch the
+  // desktop collapsed preference.
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
-    <div className="tp-shell min-h-screen" data-collapsed={collapsed ? "true" : "false"}>
+    <div
+      className="tp-shell min-h-screen"
+      data-collapsed={collapsed ? "true" : "false"}
+      data-mobile-nav={mobileOpen ? "open" : "closed"}
+    >
       {/* Topbar — horizontal card spanning the top */}
       <header className="tp-topbar rounded-lg border border-glass-border bg-glass shadow-glass backdrop-blur-md">
         <div className="flex h-full items-center justify-between px-5">
           <div className="flex items-center gap-2">
+            {/* Desktop rail toggle — hidden on mobile where the button below
+                takes over. */}
             <button
               type="button"
               onClick={toggleCollapsed}
               aria-expanded={!collapsed}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="flex size-11 cursor-pointer items-center justify-center rounded-md border border-line bg-surface text-ivory-dim transition-colors duration-150 hover:text-ivory"
+              className="hidden size-11 cursor-pointer items-center justify-center rounded-md border border-line bg-surface text-ivory-dim transition-colors duration-150 hover:text-ivory min-[1181px]:flex"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -86,6 +97,32 @@ export function NavShell({
                   <path d="M9 6l6 6-6 6" />
                 ) : (
                   <path d="M15 6l-6 6 6 6" />
+                )}
+              </svg>
+            </button>
+            {/* Mobile drawer toggle — only rendered below 1180px. */}
+            <button
+              type="button"
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-expanded={mobileOpen}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              title={mobileOpen ? "Close menu" : "Open menu"}
+              className="flex size-11 cursor-pointer items-center justify-center rounded-md border border-line bg-surface text-ivory-dim transition-colors duration-150 hover:text-ivory min-[1181px]:hidden"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="size-[18px]"
+              >
+                {mobileOpen ? (
+                  <path d="M6 6l12 12M18 6L6 18" />
+                ) : (
+                  <path d="M4 7h16M4 12h16M4 17h16" />
                 )}
               </svg>
             </button>
@@ -107,9 +144,19 @@ export function NavShell({
         </div>
       </header>
 
+      {/* Backdrop for the mobile drawer. Hidden on desktop by CSS. */}
+      <button
+        type="button"
+        aria-hidden={!mobileOpen}
+        tabIndex={mobileOpen ? 0 : -1}
+        aria-label="Close menu"
+        className="tp-backdrop"
+        onClick={() => setMobileOpen(false)}
+      />
+
       {/* Sidebar — vertical card on the left, icon-only when collapsed (`md:hidden lg:block`) */}
       <aside className="tp-sidebar rounded-lg border border-glass-border bg-glass shadow-glass backdrop-blur-md">
-        <nav aria-label="Main navigation" className="flex h-full flex-col p-3">
+        <nav aria-label="Main navigation" className="flex h-full flex-col p-3" onClick={() => setMobileOpen(false)}>
           <ul className="flex flex-1 flex-col gap-1">
             {links.map((link) => (
               <li key={link.href}>

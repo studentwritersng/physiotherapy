@@ -1,11 +1,11 @@
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 
 export const metadata = { title: "Dashboard — TetaPhysio" };
 
 export default async function StaffDashboardPage() {
   // Redundant with the layout guard by design: a route must not depend on a
   // layout for its authorization.
-  const user = await requireRole("admin", "therapist", "receptionist");
+  const user = await requirePageRole("admin", "therapist", "receptionist");
 
   return (
     <section className="flex flex-col gap-6">

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/Card";
 import { SubmitButton } from "@/components/SubmitButton";
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 import { prisma } from "@/server/db";
 import { NEXT_STATUS } from "@/server/services/appointment-status";
 import { TIMEZONE } from "@/lib/constants";
@@ -38,7 +38,7 @@ export default async function AppointmentDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireRole("admin", "therapist", "receptionist");
+  const user = await requirePageRole("admin", "therapist", "receptionist");
   const { id } = await params;
 
   // Detail reads go straight to Prisma rather than through a service: the
@@ -107,7 +107,7 @@ export default async function AppointmentDetailPage({
       )}
 
       {appointment.status !== "cancelled" && appointment.status !== "completed" && (
-        <Card title="Cancel appointment" description="A reason is required — it feeds the reports.">
+        <Card title="Cancel appointment" description="A reason is required — it feeds the reports." accent="orchid">
           <CancelForm action={saveCancel} appointmentId={appointment.id} />
         </Card>
       )}

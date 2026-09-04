@@ -1,31 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
+const STORAGE_KEY = "tp-theme";
 
-/**
- * Reads the stored choice lazily on the client. The initial `data-theme` is set
- * before first paint by a blocking inline script in the root layout, so this
- * component never flashes and never calls setState inside an effect.
- *
- * The server render always starts from "light" (the layout's default), and the
- * first client render corrects it from localStorage, so hydration stays in sync.
- */
-function readInitialTheme(): Theme {
+function readStoredTheme(): Theme {
   if (typeof window === "undefined") return "light";
-  const stored = window.localStorage.getItem("tp-theme");
-  return stored === "dark" ? "dark" : "light";
+  try {
+    return window.localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
+  } catch {
+    return "light";
+  }
 }
 
+function subscribeTheme(onChange: () => void): () => void {
+  window.addEventListener("storage", onChange);
+  window.addEventListener("tp-theme-change", onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener("tp-theme-change", onChange);
+  };
+}
+
+/**
+ * Single source of truth is localStorage. The blocking inline script in the
+ * root layout applies it before first paint (no flash); this subscription
+ * reconciles on mount (heals any case where the script missed) and follows
+ * cross-tab changes. Previously the toggle read storage once into useState,
+ * so any divergence between DOM and state — missed script, another tab —
+ * persisted until the next click.
+ */
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(readInitialTheme);
+  const theme = useSyncExternalStore(subscribeTheme, readStoredTheme, () => "light");
+
+  // Re-apply on every change, including the first mount: if the pre-paint
+  // script ran, this is a no-op; if it didn't, this heals the mismatch.
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   function toggle() {
     const next: Theme = theme === "light" ? "dark" : "light";
-    setTheme(next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // Private mode etc. — still apply to this tab's DOM.
+    }
     document.documentElement.setAttribute("data-theme", next);
-    window.localStorage.setItem("tp-theme", next);
+    // Same-tab listeners don't fire `storage` events for their own writes.
+    window.dispatchEvent(new Event("tp-theme-change"));
   }
 
   return (

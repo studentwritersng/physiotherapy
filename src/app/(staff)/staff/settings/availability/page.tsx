@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/Card";
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 import { listAvailability, listTherapists } from "@/server/services/availability";
 import { addAvailability } from "./actions";
 import { AvailabilityForm } from "./AvailabilityForm";
@@ -13,7 +13,7 @@ export default async function AvailabilityPage({
 }: {
   searchParams: Promise<{ therapist?: string }>;
 }) {
-  await requireRole("admin");
+  await requirePageRole("admin");
 
   const [{ therapist: requested }, therapists] = await Promise.all([
     searchParams,

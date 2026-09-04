@@ -1,6 +1,6 @@
 import { Card } from "@/components/Card";
 import { FormField } from "@/components/FormField";
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 import { listActiveServices } from "@/server/services/service-catalog";
 import { listTherapists } from "@/server/services/availability";
 import { findWalkInMatch } from "@/server/services/booking";
@@ -14,7 +14,7 @@ export default async function WalkInPage({
 }: {
   searchParams: Promise<{ phone?: string; service?: string; therapist?: string }>;
 }) {
-  await requireRole("admin", "receptionist");
+  await requirePageRole("admin", "receptionist");
   const [{ phone, service, therapist }, services, therapists] = await Promise.all([
     searchParams,
     listActiveServices(),
@@ -32,7 +32,7 @@ export default async function WalkInPage({
         </p>
       </header>
 
-      <Card title="Find or start a record">
+      <Card title="Find or start a record" accent="sky">
         <form method="get" className="grid gap-4 sm:grid-cols-2">
           <FormField label="Phone number" name="phone" type="tel" tabular defaultValue={phone ?? ""} />
           <div className="flex flex-col gap-1">
@@ -61,7 +61,7 @@ export default async function WalkInPage({
       </Card>
 
       {phone && (
-        <Card title={match ? "Link this patient" : "New patient"}>
+        <Card title={match ? "Link this patient" : "New patient"} accent="jade">
           <WalkInConfirm
             action={confirmWalkIn}
             phone={phone}

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { armPatientAccount, armStaffAccount, disconnect, resetClinicConfig } from "./helpers/db";
+import { openNavForMobile } from "./helpers/nav";
 
 const STAFF_PASSWORD = process.env.SEED_STAFF_PASSWORD ?? "changeme1";
 const PATIENT_PASSWORD = process.env.SEED_PATIENT_PASSWORD ?? "changeme1";
@@ -35,6 +36,9 @@ test.afterAll(async () => {
 test.describe("clinic settings", () => {
   test("admin reaches settings from the navigation", async ({ page }) => {
     await loginAsAdmin(page);
+
+    // Mobile viewports keep the nav in a closed drawer — open it first.
+    await openNavForMobile(page);
 
     await page
       .getByRole("navigation", { name: "Main navigation" })
@@ -115,12 +119,16 @@ test.describe("services", () => {
     await loginAsAdmin(page);
     await page.goto("/staff/settings/services");
 
-    await page.getByLabel("Service name").fill("Dry Needling");
-    await page.getByLabel("Duration (minutes)").fill("30");
-    await page.getByLabel("Price (₦)").fill("12000");
-    await page.getByRole("button", { name: "Add service" }).click();
+    // Scope to the add form: every edit row renders its own ServiceForm with
+    // the same field labels, so an unscoped lookup matches 7 inputs.
+    const addForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Add service" }) });
 
-    await expect(page.getByRole("status")).toContainText(/Dry Needling added/i);
+    await addForm.getByLabel("Service name").fill("Dry Needling");
+    await addForm.getByLabel("Duration (minutes)").fill("30");
+    await addForm.getByLabel("Price (₦)").fill("12000");
+    await addForm.getByRole("button", { name: "Add service" }).click();
+
+    await expect(addForm.getByRole("status")).toContainText(/Dry Needling added/i);
 
     const row = page.getByRole("row", { name: /Dry Needling/ });
     await expect(row).toContainText("30 min");
@@ -133,16 +141,18 @@ test.describe("services", () => {
     await loginAsAdmin(page);
     await page.goto("/staff/settings/services");
 
-    await page.getByLabel("Service name").fill("Bad Service");
-    await page.getByLabel("Duration (minutes)").evaluate((el) => {
+    const addForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Add service" }) });
+
+    await addForm.getByLabel("Service name").fill("Bad Service");
+    await addForm.getByLabel("Duration (minutes)").evaluate((el) => {
       const input = el as HTMLInputElement;
       input.removeAttribute("min");
       input.value = "0";
     });
-    await page.getByLabel("Price (₦)").fill("1000");
-    await page.getByRole("button", { name: "Add service" }).click();
+    await addForm.getByLabel("Price (₦)").fill("1000");
+    await addForm.getByRole("button", { name: "Add service" }).click();
 
-    await expect(page.getByRole("status")).toContainText(/highlighted/i);
+    await expect(addForm.getByRole("status")).toContainText(/highlighted/i);
   });
 
   test("deactivating a service flips its status", async ({ page }) => {
@@ -170,7 +180,7 @@ test.describe("services", () => {
     await editForm.getByLabel("Price (₦)").fill("17500.00");
     await editForm.getByRole("button", { name: "Save changes" }).click();
 
-    await expect(page.getByRole("status")).toContainText(/updated/i);
+    await expect(editForm.getByRole("status")).toContainText(/updated/i);
 
     const row = page.getByRole("row", { name: /Pain Management/ });
     await expect(row).toContainText("17500.00");
@@ -182,13 +192,15 @@ test.describe("services", () => {
     await loginAsAdmin(page);
     await page.goto("/staff/settings/services");
 
-    await page.getByLabel("Service name").fill("Odd Price");
-    await page.getByLabel("Duration (minutes)").fill("30");
-    // Decimal(12,2) would silently round a third decimal, so the schema rejects it.
-    await page.getByLabel("Price (₦)").fill("100.123");
-    await page.getByRole("button", { name: "Add service" }).click();
+    const addForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Add service" }) });
 
-    await expect(page.getByRole("status")).toContainText(/highlighted/i);
+    await addForm.getByLabel("Service name").fill("Odd Price");
+    await addForm.getByLabel("Duration (minutes)").fill("30");
+    // Decimal(12,2) would silently round a third decimal, so the schema rejects it.
+    await addForm.getByLabel("Price (₦)").fill("100.123");
+    await addForm.getByRole("button", { name: "Add service" }).click();
+
+    await expect(addForm.getByRole("status")).toContainText(/highlighted/i);
   });
 });
 
@@ -214,7 +226,7 @@ test.describe("therapist availability", () => {
     await page.goto("/staff/settings/availability");
 
     await page.getByLabel("A specific date").check();
-    await page.getByLabel("Date").fill("2026-12-25");
+    await page.getByLabel("Date", { exact: true }).fill("2026-12-25");
     await page.getByLabel("From", { exact: true }).fill("00:00");
     await page.getByLabel("To", { exact: true }).fill("23:59");
     await page.getByLabel("This is time off, not working hours").check();
@@ -256,11 +268,13 @@ test.describe("website content", () => {
     await loginAsAdmin(page);
     await page.goto("/staff/settings/content");
 
-    await page.getByLabel("Patient name").fill("Ada O.");
-    await page.getByLabel("Testimonial").fill("I am walking without pain again.");
-    await page.getByRole("button", { name: "Add testimonial" }).click();
+    const testimonialForm = page.locator("form").filter({ has: page.getByLabel("Patient name") });
 
-    await expect(page.getByRole("status")).toContainText(/added/i);
+    await testimonialForm.getByLabel("Patient name").fill("Ada O.");
+    await testimonialForm.getByLabel("Testimonial").fill("I am walking without pain again.");
+    await testimonialForm.getByRole("button", { name: "Add testimonial" }).click();
+
+    await expect(testimonialForm.getByRole("status")).toContainText(/added/i);
 
     const entry = page.getByRole("listitem").filter({ hasText: "Ada O." });
     await expect(entry).toContainText("Draft");

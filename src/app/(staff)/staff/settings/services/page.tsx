@@ -1,5 +1,5 @@
 import { Card } from "@/components/Card";
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 import { listServices } from "@/server/services/service-catalog";
 import { addService, editService } from "./actions";
 import { ServiceForm } from "./ServiceForm";
@@ -8,7 +8,7 @@ import { ServiceList } from "./ServiceList";
 export const metadata = { title: "Services — TetaPhysio" };
 
 export default async function ServicesPage() {
-  await requireRole("admin");
+  await requirePageRole("admin");
 
   const services = await listServices();
 

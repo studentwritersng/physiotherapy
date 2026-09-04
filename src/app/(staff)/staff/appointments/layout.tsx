@@ -1,6 +1,6 @@
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 
 export default async function AppointmentsLayout({ children }: { children: React.ReactNode }) {
-  await requireRole("admin", "therapist", "receptionist");
+  await requirePageRole("admin", "therapist", "receptionist");
   return <>{children}</>;
 }

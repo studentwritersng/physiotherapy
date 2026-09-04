@@ -1,5 +1,6 @@
+import { AutoSubmitForm } from "@/components/AutoSubmitForm";
 import { Card } from "@/components/Card";
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 import { listActiveServices } from "@/server/services/service-catalog";
 import { listTherapists } from "@/server/services/availability";
 import { getSlotsForDate } from "@/server/services/booking";
@@ -15,7 +16,7 @@ export default async function NewBookingPage({
 }: {
   searchParams: Promise<{ service?: string; therapist?: string; date?: string }>;
 }) {
-  const user = await requireRole("admin", "receptionist");
+  const user = await requirePageRole("admin", "receptionist");
   const [{ service, therapist, date }, services, therapists] = await Promise.all([
     searchParams,
     listActiveServices(),
@@ -35,13 +36,16 @@ export default async function NewBookingPage({
     <div className="flex flex-col gap-6">
       <header>
         <h1 className="font-display text-2xl font-semibold text-ivory">New booking</h1>
-        <p className="mt-1 text-sm text-ivory-dim">Pick a service, therapist and day — then a slot.</p>
+        <p className="mt-1 text-sm text-ivory-dim">
+          Two steps: first choose <strong>what, who and when</strong> to see free slots, then pick
+          a slot and a patient to book it.
+        </p>
       </header>
 
       {/* Step 1: GET form. Changing any select reloads the page with new search
           params, which re-renders the slot list server-side. No JavaScript. */}
-      <Card title="Service, therapist, day">
-        <form method="get" className="grid gap-4 sm:grid-cols-3">
+      <Card title="Step 1 — Service, therapist, day" accent="sky">
+        <AutoSubmitForm className="grid gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-1">
             <label htmlFor="service" className="text-sm font-medium text-ivory">Service</label>
             <select id="service" name="service" defaultValue={serviceId} className="min-h-11 cursor-pointer rounded-md border border-line bg-surface px-3 py-2 text-base text-ivory focus:outline-none focus:ring-3 focus:ring-jade">
@@ -64,15 +68,15 @@ export default async function NewBookingPage({
             <input id="date" name="date" type="date" defaultValue={dateKey} className="min-h-11 rounded-md border border-line bg-surface px-3 py-2 text-base tabular text-ivory focus:outline-none focus:ring-3 focus:ring-jade" />
           </div>
           <div className="sm:col-span-3">
-            <button type="submit" className="min-h-11 cursor-pointer rounded-md border border-line px-4 py-2 text-sm font-medium text-ivory transition-colors duration-150 hover:bg-surface-2">
+            <button type="submit" className="min-h-11 cursor-pointer rounded-md border border-line px-4 py-2 text-sm font-medium transition-colors duration-150 hover:bg-surface-2">
               Show slots
             </button>
           </div>
-        </form>
+        </AutoSubmitForm>
       </Card>
 
       {/* Step 2: the booking itself posts to the Server Action. */}
-      <Card title="Slot and patient">
+      <Card title="Step 2 — Slot and patient" accent="jade">
         <BookingForm
           action={createBooking}
           patients={patients.map((p) => ({ id: p.id, fullName: p.fullName, phone: p.phone }))}

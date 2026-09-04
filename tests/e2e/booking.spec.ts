@@ -57,6 +57,10 @@ test.describe("walk-in booking", () => {
 
     // Unknown phone: the new-patient branch renders.
     await page.getByLabel("Patient name").fill("Walk In Test");
+    // Dismiss the virtual keyboard first: on mobile emulation it resizes the
+    // viewport mid-scroll and the click point oscillates under nearby content
+    // forever (button is stable, visible and enabled throughout).
+    await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Check in" }).click();
 
     // confirmWalkIn redirects to the new visit's detail page.
@@ -141,7 +145,12 @@ test.describe("status flow", () => {
       // state instead — the pill flips to cancelled and the cancel card is
       // gone, which is what "shows its reason was accepted" means in the UI.
       await expect(page.getByText("cancelled", { exact: false }).first()).toBeVisible();
-      await expect(page.getByRole("button", { name: "Cancel appointment" })).toHaveCount(0);
+      // The pill flips via the action's success banner instantly, but the
+      // Cancel card unmounts only after the router refresh roundtrip lands —
+      // slow under mobile emulation, so this assertion gets room to breathe.
+      await expect(page.getByRole("button", { name: "Cancel appointment" })).toHaveCount(0, {
+        timeout: 15_000,
+      });
     } finally {
       await setCancellationCutoff("2");
     }

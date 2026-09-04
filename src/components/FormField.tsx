@@ -12,6 +12,14 @@ export type FormFieldProps = {
   step?: number;
   /** Times, prices and durations line up in a column. */
   tabular?: boolean;
+  /**
+   * Prefix for the rendered id (and its label/hint/error associations).
+   * The submitted `name` is unchanged — Server Actions read by name. Needed
+   * wherever one page renders the same form twice (e.g. a service list with
+   * an inline edit form per row): duplicate ids break label association,
+   * so every label would focus the first row's input.
+   */
+  idPrefix?: string;
 };
 
 export function FormField({
@@ -27,21 +35,23 @@ export function FormField({
   max,
   step,
   tabular = false,
+  idPrefix,
 }: FormFieldProps) {
-  const hintId = hint ? `${name}-hint` : undefined;
-  const errorId = error ? `${name}-error` : undefined;
+  const fieldId = idPrefix ? `${idPrefix}-${name}` : name;
+  const hintId = hint ? `${fieldId}-hint` : undefined;
+  const errorId = error ? `${fieldId}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
     <div className="flex flex-col gap-1.5">
       {/* A real label, not a placeholder — placeholders vanish on focus and are
           not announced reliably. */}
-      <label htmlFor={name} className="text-sm font-medium text-ivory">
+      <label htmlFor={fieldId} className="text-sm font-medium text-ivory">
         {label}
         {!required && <span className="ml-1 font-normal text-ivory-faint">(optional)</span>}
       </label>
       <input
-        id={name}
+        id={fieldId}
         name={name}
         type={type}
         autoComplete={autoComplete}

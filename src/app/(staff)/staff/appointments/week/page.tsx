@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/Card";
-import { requireRole } from "@/server/auth/rbac";
+import { requirePageRole } from "@/server/auth/page-guard";
 import { getWeekSchedule } from "@/server/services/schedule";
 import { todayKey } from "@/lib/slots";
 import { TIMEZONE } from "@/lib/constants";
@@ -29,7 +29,7 @@ export default async function WeekPage({
 }: {
   searchParams: Promise<{ week?: string; therapist?: string }>;
 }) {
-  await requireRole("admin", "therapist", "receptionist");
+  await requirePageRole("admin", "therapist", "receptionist");
   const [{ week, therapist }] = await Promise.all([searchParams]);
 
   const mondayKey = mondayOf(week ?? todayKey());
