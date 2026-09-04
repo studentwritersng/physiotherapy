@@ -199,8 +199,8 @@ test.describe("therapist availability", () => {
 
     await page.getByLabel("Every week").check();
     await page.getByLabel("Day of the week").selectOption("2");
-    await page.getByLabel("From").fill("09:00");
-    await page.getByLabel("To").fill("13:00");
+    await page.getByLabel("From", { exact: true }).fill("09:00");
+    await page.getByLabel("To", { exact: true }).fill("13:00");
     await page.getByRole("button", { name: "Add entry" }).click();
 
     await expect(page.getByRole("status")).toContainText(/Availability added/i);
@@ -215,8 +215,8 @@ test.describe("therapist availability", () => {
 
     await page.getByLabel("A specific date").check();
     await page.getByLabel("Date").fill("2026-12-25");
-    await page.getByLabel("From").fill("00:00");
-    await page.getByLabel("To").fill("23:59");
+    await page.getByLabel("From", { exact: true }).fill("00:00");
+    await page.getByLabel("To", { exact: true }).fill("23:59");
     await page.getByLabel("This is time off, not working hours").check();
     await page.getByLabel("Reason (optional)").fill("Christmas Day");
     await page.getByRole("button", { name: "Add entry" }).click();
@@ -233,8 +233,8 @@ test.describe("therapist availability", () => {
     await loginAsAdmin(page);
     await page.goto("/staff/settings/availability");
 
-    await page.getByLabel("From").fill("17:00");
-    await page.getByLabel("To").fill("09:00");
+    await page.getByLabel("From", { exact: true }).fill("17:00");
+    await page.getByLabel("To", { exact: true }).fill("09:00");
     await page.getByRole("button", { name: "Add entry" }).click();
 
     await expect(page.getByRole("status")).toContainText(/highlighted/i);

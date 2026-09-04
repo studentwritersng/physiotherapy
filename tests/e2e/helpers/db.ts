@@ -101,3 +101,15 @@ export async function resetClinicConfig(): Promise<void> {
     data: { defaultPrice: "15000.00", defaultDurationMinutes: 45, name: "Pain Management" },
   });
 }
+
+/**
+ * Clears the rows the booking journeys create. Appointments and their history
+ * go; patients, services, availability and settings stay — the seed and the
+ * clinic-config suite own those. Login attempts are cleared so the deliberate
+ * wrong-password coverage elsewhere never throttles these journeys.
+ */
+export async function resetBookingState(): Promise<void> {
+  await prisma.appointmentStatusHistory.deleteMany({});
+  await prisma.appointment.deleteMany({});
+  await prisma.loginAttempt.deleteMany({});
+}

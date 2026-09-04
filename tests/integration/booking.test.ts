@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { testPrisma, truncateAll } from "../helpers/db";
 import {
-  CutoffError,
   SlotTakenError,
   bookAppointment,
   cancelAppointment,
@@ -326,7 +325,7 @@ describe("getSlotsForDate", () => {
 
   it("merges across therapists when none is chosen", async () => {
     const a = await makeTherapist("Dr. A", "+2348010000001");
-    const b = await makeTherapist("Dr. B", "+2348010000002");
+    await makeTherapist("Dr. B", "+2348010000002");
     const s = await makeService();
     await giveHours(a.id);
     // B has no hours.

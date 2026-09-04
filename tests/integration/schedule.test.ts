@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { testPrisma, truncateAll } from "../helpers/db";
 import { getDaySchedule, getWeekSchedule } from "@/server/services/schedule";
-import { transitionStatus } from "@/server/services/appointment-status";
 
 beforeEach(async () => {
   await truncateAll();

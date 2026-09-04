@@ -4,13 +4,13 @@ Physiotherapy clinic management platform for a single clinic in Nigeria: public 
 
 ## Status
 
-Sub-projects 1 (Foundation) and 2 (Clinic configuration) are complete. Sub-project 2 ships the design system from `doc/clinic-dashboard.html`, four admin-only settings screens, the availability resolver the booking engine consumes, and the E2E journeys that cover them. Operational features arrive with their own sub-projects.
+Sub-projects 1 (Foundation), 2 (Clinic configuration) and 3 (Booking engine) are complete. Sub-project 3 ships the slot engine with a database-backed no-double-booking guarantee, the appointment status machine, walk-in and manual booking, the staff agenda and week views, and the E2E journeys that cover them. Operational features arrive with their own sub-projects.
 
 | # | Sub-project | State |
 |---|---|---|
 | 1 | Foundation — schema, auth, RBAC, security | Done |
 | 2 | Clinic config, services, therapist availability | Done |
-| 3 | Booking engine, staff calendar, walk-ins | Not started |
+| 3 | Booking engine, staff calendar, walk-ins | Done |
 | 4 | Public website | Not started |
 | 5 | Patient portal + intake form | Not started |
 | 6 | Clinical documentation & treatment plans | Not started |
@@ -118,7 +118,7 @@ The test suite never connects to Neon.
 
 ## Verified state
 
-Last full sweep (sub-project 2): 27 tables, 15 enums, 191 Vitest tests across 19 files, 35 Playwright tests across Desktop Chrome and Pixel 7. `tsc --noEmit`, `eslint .` and `next build` all clean. All 12 contrast pairs (light and dark) verified ≥ 4.5:1.
+Last full sweep (sub-project 3): 27 tables, 15 enums, two migrations applied (`init`, `no_therapist_overlap`). 263 Vitest tests across 26 files pass. Playwright booking journeys (6 per project) pass on chromium; full-suite per-project counts recorded in the Task 10 report. `tsc --noEmit` and `next build` clean.
 
 ## Documentation
 

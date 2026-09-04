@@ -105,7 +105,9 @@ export const clinicSettingsSchema = z.object({
   clinicName: z.string().trim().min(1, "Clinic name is required"),
   tagline: optionalText,
   logoUrl: optionalUrl,
-  aboutContent: optionalText,
+  // Owned by the About form (saveAbout), not the details form — which never
+  // posts this key. Optional so saving clinic details does not demand it.
+  aboutContent: optionalText.optional(),
   contactPhone: optionalText,
   contactWhatsapp: optionalText,
   contactEmail: optionalEmail,
