@@ -48,6 +48,19 @@ describe("staff navigation", () => {
     }
   });
 
+  it("marks Appointments and My schedule available after sub-project 3", () => {
+    const therapistLinks = staffLinksFor("therapist");
+    expect(therapistLinks.find((l) => l.label === "My schedule")).toMatchObject({
+      href: "/staff/appointments",
+      available: true,
+    });
+    const receptionLinks = staffLinksFor("receptionist");
+    expect(receptionLinks.find((l) => l.label === "Appointments")).toMatchObject({
+      href: "/staff/appointments",
+      available: true,
+    });
+  });
+
   it("gives the patient portal its four sections", () => {
     const labels = portalLinks().map((l) => l.label);
     expect(labels).toEqual(["Dashboard", "Appointments", "My profile", "Payments"]);
