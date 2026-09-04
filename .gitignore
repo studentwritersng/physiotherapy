@@ -63,3 +63,8 @@ ios/
 # Subagent-driven development scratch: ledgers, briefs, review packages.
 # Git history is the durable record; this is working state.
 .superpowers/
+
+# Homepage photos land here (see the sub-project 4 spec §4.1); only the
+# .gitkeep is tracked until the clinic supplies real files.
+public/images/*
+!public/images/.gitkeep
