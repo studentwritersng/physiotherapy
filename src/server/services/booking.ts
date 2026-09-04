@@ -5,6 +5,7 @@ import { getClinicSettings } from "@/server/services/clinic-settings";
 import { getService } from "@/server/services/service-catalog";
 import { listTherapists, resolveAvailability } from "@/server/services/availability";
 import { normalisePhone } from "@/server/auth/login";
+import { bookingReference } from "@/lib/site";
 import { transitionStatus } from "@/server/services/appointment-status";
 import { getBookableSlots, lagosDayRange, type BookableSlot } from "@/lib/slots";
 
@@ -257,6 +258,94 @@ export async function walkInAppointment(input: WalkInInput): Promise<Appointment
     });
     return appointment;
   });
+}
+
+export type PublicBookInput = {
+  fullName: string;
+  phone: string;
+  email?: string | null;
+  /** Informational only (PRD-03 §2 lists the field). Linkage is by phone
+   * match regardless of what the visitor ticked. */
+  isNewPatient: boolean;
+  reasonForVisit?: string | null;
+  serviceId: string;
+  therapistId: string;
+  start: Date;
+};
+
+/**
+ * Public booking (spec §6). Same engine guarantees as the staff path — overlap
+ * check for the friendly error, P2002 race translated to SlotTakenError — with
+ * three deliberate differences: the patient is linked-or-created as a lead
+ * (never visited, so status lead, not registered), the appointment opens at
+ * scheduled (not arrived — nobody has seen them yet), and the history row
+ * carries changedById null (schema-legal; there is no actor).
+ */
+export async function bookPublicAppointment(
+  input: PublicBookInput,
+): Promise<{ appointment: Appointment; reference: string; isNewPatient: boolean }> {
+  const digits = normalisePhone(input.phone);
+
+  const service = await getService(input.serviceId);
+  if (!service) throw new Error(`Service not found: ${input.serviceId}`);
+  const end = new Date(input.start.getTime() + service.defaultDurationMinutes * 60_000);
+
+  const conflicts = await findOverlaps(prisma, input.therapistId, input.start, end);
+  if (conflicts.length > 0) throw new SlotTakenError(conflicts);
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const match = await tx.patient.findFirst({
+        where: { phone: digits, deletedAt: null },
+        orderBy: { createdAt: "asc" },
+      });
+
+      let patientId: string;
+      let isNewPatient: boolean;
+      if (match) {
+        patientId = match.id;
+        isNewPatient = false;
+      } else {
+        const created = await tx.patient.create({
+          data: {
+            patientCode: await nextPatientCode(tx),
+            fullName: input.fullName.trim(),
+            phone: digits,
+            email: input.email?.trim() ? input.email.trim().toLowerCase() : null,
+            status: "lead",
+          },
+        });
+        patientId = created.id;
+        isNewPatient = true;
+      }
+
+      const appointment = await tx.appointment.create({
+        data: {
+          patientId,
+          therapistId: input.therapistId,
+          serviceId: input.serviceId,
+          scheduledStart: input.start,
+          scheduledEnd: end,
+          status: "scheduled",
+          bookedVia: "public",
+          reasonForVisit: input.reasonForVisit ?? null,
+          wasForceBooked: false,
+        },
+      });
+      await tx.appointmentStatusHistory.create({
+        data: { appointmentId: appointment.id, status: "scheduled", changedById: null },
+      });
+      return { appointment, isNewPatient };
+    });
+
+    return { ...result, reference: bookingReference(result.appointment.id) };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const conflicts = await findOverlaps(prisma, input.therapistId, input.start, end);
+      throw new SlotTakenError(conflicts);
+    }
+    throw error;
+  }
 }
 
 export async function forceBookAppointment(
