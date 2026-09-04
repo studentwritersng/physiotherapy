@@ -275,10 +275,14 @@ test.describe("website content", () => {
     await loginAsAdmin(page);
     await page.goto("/staff/settings/content");
 
-    await page.getByLabel("About the clinic").fill("Serving Lagos since 2019.");
-    await page.getByRole("button", { name: "Save about content" }).click();
+    // Two FormStatus regions live on this page (about + testimonials), so scope
+    // to the about form the way the settings tests scope to their form.
+    const aboutForm = page.locator("form").filter({ has: page.getByLabel("About the clinic") });
 
-    await expect(page.getByRole("status")).toContainText(/saved/i);
+    await aboutForm.getByLabel("About the clinic").fill("Serving Lagos since 2019.");
+    await aboutForm.getByRole("button", { name: "Save about content" }).click();
+
+    await expect(aboutForm.getByRole("status")).toContainText(/saved/i);
 
     await page.reload();
     await expect(page.getByLabel("About the clinic")).toHaveValue("Serving Lagos since 2019.");
@@ -288,10 +292,12 @@ test.describe("website content", () => {
     await loginAsAdmin(page);
     await page.goto("/staff/settings/content");
 
-    await page.getByLabel("Patient name").fill("Nobody");
-    await page.getByRole("button", { name: "Add testimonial" }).click();
+    const testimonialForm = page.locator("form").filter({ has: page.getByLabel("Patient name") });
 
-    await expect(page.getByRole("status")).toContainText(/highlighted/i);
+    await testimonialForm.getByLabel("Patient name").fill("Nobody");
+    await testimonialForm.getByRole("button", { name: "Add testimonial" }).click();
+
+    await expect(testimonialForm.getByRole("status")).toContainText(/highlighted/i);
   });
 });
 
