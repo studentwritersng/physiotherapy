@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/Card";
 import { requireRole } from "@/server/auth/rbac";
 import { getWeekSchedule } from "@/server/services/schedule";
+import { todayKey } from "@/lib/slots";
 import { TIMEZONE } from "@/lib/constants";
 
 export const metadata = { title: "Week view — TetaPhysio" };
@@ -14,17 +15,6 @@ function mondayOf(dateKey: string): string {
   const monday = new Date(dt.getTime() - back * 86_400_000);
   const pad = (v: number) => String(v).padStart(2, "0");
   return `${monday.getUTCFullYear()}-${pad(monday.getUTCMonth() + 1)}-${pad(monday.getUTCDate())}`;
-}
-
-function todayKey(): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const get = (t: string) => parts.find((p) => p.type === t)!.value;
-  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 function shiftWeek(mondayKey: string, delta: number): string {

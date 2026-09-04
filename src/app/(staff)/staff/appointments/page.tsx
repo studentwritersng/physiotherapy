@@ -4,6 +4,7 @@ import { requireRole } from "@/server/auth/rbac";
 import { getDaySchedule } from "@/server/services/schedule";
 import { listTherapists } from "@/server/services/availability";
 import { TIMEZONE } from "@/lib/constants";
+import { todayKey } from "@/lib/slots";
 import type { AppointmentStatus } from "@/generated/prisma/client";
 
 export const metadata = { title: "Appointments — TetaPhysio" };
@@ -17,18 +18,6 @@ const STATUS_PILL: Record<AppointmentStatus, string> = {
   cancelled: "bg-orchid-dim text-orchid",
   no_show: "bg-orchid-dim text-orchid",
 };
-
-function todayKey(): string {
-  // Lagos "today", derived from TIMEZONE — never hardcode the offset here.
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const get = (t: string) => parts.find((p) => p.type === t)!.value;
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
 
 function formatTime(date: Date): string {
   return new Intl.DateTimeFormat("en-NG", {

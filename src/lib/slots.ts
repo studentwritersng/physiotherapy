@@ -63,6 +63,21 @@ export function lagosDayRange(dateKey: string): { from: Date; to: Date } {
   };
 }
 
+/**
+ * Lagos "today" as YYYY-MM-DD, derived from TIMEZONE — never a hardcoded
+ * offset. One home for all pages that default a date filter to today.
+ */
+export function todayKey(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)!.value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
 function toMinutes(hhmm: string): number {
   const [h, mi] = splitTime(hhmm);
   return h * 60 + mi;
