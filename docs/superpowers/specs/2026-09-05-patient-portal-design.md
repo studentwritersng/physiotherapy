@@ -80,9 +80,9 @@ unlink.
 - Registration = phone + password + **required email** (rejected if
   missing/invalid). The clinic needs a non-SMS channel; email is mandatory for
   every portal user.
-- A matching patient phone does NOT auto-link: staff approve a one-click link
-  on the existing staff patient record (matching logins shown by phone). Full
-  review queue arrives in sub-project 10.
+- A matching patient phone does NOT auto-link: staff approve a one-click link on
+  a minimal `staff/portal-links` approve-only page (no patient record page
+  exists to host it; full review queue arrives in sub-project 10).
 - `patients.email` stays nullable in the DB only for staff-created and walk-in
   rows that predate the address. Those rows carry a staff-visible "missing
   email" flag; the portal prompts the patient to add it until provided. No
