@@ -81,6 +81,7 @@ describe("portal profile", () => {
       status: "discharged",
       patientCode: "HACK-1",
       userId: null,
+      consentGiven: true,
     });
 
     const updated = await testPrisma.patient.findUniqueOrThrow({ where: { id: patient.id } });
@@ -90,10 +91,11 @@ describe("portal profile", () => {
     expect(updated.address).toBe("12 Allen Avenue, Ikeja");
     expect(updated.emergencyContactName).toBe("Charles Babbage");
     expect(updated.basicMedicalInfo).toBe("Asthma");
-    // Whitelist held: link, code and status untouched; updatedAt moved.
+    // Whitelist held: link, code, status and consent untouched; updatedAt moved.
     expect(updated.userId).toBe(user.id);
     expect(updated.patientCode).toBe("TP-00003");
     expect(updated.status).toBe("registered");
+    expect(updated.consentGiven).toBe(false);
     expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(before.updatedAt.getTime());
   });
 
