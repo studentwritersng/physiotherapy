@@ -39,6 +39,9 @@ export function NavShell({
   useEffect(() => {
     try {
       if (window.localStorage.getItem("tp-sidebar-collapsed") === "1") {
+        // Mount-time restore of persisted UI state. Reading localStorage
+        // during render would break SSR hydration; the prop owns first paint.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCollapsed(true);
       }
     } catch {

@@ -58,6 +58,9 @@ export function Goniometer({
   useEffect(() => {
     const target = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
     if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // Mount-time sync with the OS motion preference. A lazy useState
+      // initializer would read matchMedia during render and mismatch SSR.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShown(target);
       return;
     }

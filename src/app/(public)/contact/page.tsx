@@ -96,7 +96,7 @@ export default async function ContactPage() {
         />
       </div>
       <p className="mt-2 text-xs text-ivory-faint">
-        An embedded map arrives with the clinic's Google Maps listing — until then, the address
+        An embedded map arrives with the clinic&apos;s Google Maps listing — until then, the address
         above plus a phone call gets every visitor here.
       </p>
     </main>

@@ -4,9 +4,9 @@ import { useEffect, useRef, useState, type ElementType } from "react";
 
 /**
  * Fade/slide reveal on scroll into view (spec §4.3). IntersectionObserver +
- * CSS only — no GSAP, no Lenis. Respects prefers-reduced-motion by rendering
- * children visibly with no transition: the observer still fires, it just
- * never hides anything.
+ * CSS only — no GSAP, no Lenis. prefers-reduced-motion is handled by the
+ * global rule in globals.css (transitions collapse to instant), so the
+ * observer drives visibility identically for everyone — no JS branch needed.
  */
 export function Reveal({
   children,
@@ -23,10 +23,6 @@ export function Reveal({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setVisible(true);
-      return;
-    }
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
