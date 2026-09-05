@@ -315,3 +315,13 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Full-page mobile menu entries: fade/slide with a per-item delay set inline.
+   Runs once on mount (both states defined); the global reduced-motion rule
+   above collapses it to instant. */
+@media (prefers-reduced-motion: no-preference) {
+  .menu-item {
+    opacity: 0;
+    animation: rise 0.35s ease-out forwards;
+  }
+}

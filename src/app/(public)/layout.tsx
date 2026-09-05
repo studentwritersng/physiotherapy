@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MobileMenu } from "@/components/MobileMenu";
 import { getClinicSettings } from "@/server/services/clinic-settings";
 import { buildWhatsAppLink } from "@/lib/site";
 
@@ -7,10 +8,9 @@ const NAV = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
   { href: "/about", label: "About & Team" },
-  // Anchor sections on the landing page; hidden on small screens where the
-  // header only fits the core routes plus the booking CTA.
-  { href: "/#conditions", label: "Conditions", hideBelow: "lg" as const },
-  { href: "/#stories", label: "Patient Stories", hideBelow: "lg" as const },
+  // Anchor sections on the landing page; on mobile they live in the overlay menu.
+  { href: "/#conditions", label: "Conditions" },
+  { href: "/#stories", label: "Patient Stories" },
 ];
 
 /**
@@ -40,26 +40,27 @@ export default async function PublicLayout({ children }: { children: React.React
           <Link href="/" className="font-display cursor-pointer text-xl font-semibold text-ivory">
             {settings.clinicName}
           </Link>
-          <nav aria-label="Public navigation" className="flex items-center gap-1 sm:gap-2">
+          <nav aria-label="Public navigation" className="hidden items-center gap-1 sm:gap-2 lg:flex">
             {NAV.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-ivory-dim transition-colors duration-150 hover:text-ivory ${
-                  "hideBelow" in item ? `hidden ${item.hideBelow}:inline` : ""
-                }`}
+                className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-ivory-dim transition-colors duration-150 hover:text-ivory"
               >
                 {item.label}
               </Link>
             ))}
+          </nav>
+          <div className="flex items-center gap-1">
             <Link
               href="/book"
-              className="ml-1 inline-flex min-h-11 cursor-pointer items-center rounded-md bg-jade px-4 py-2 text-sm font-semibold text-btn-ink transition-opacity duration-200 hover:opacity-90"
+              className="inline-flex min-h-11 cursor-pointer items-center rounded-md bg-jade px-4 py-2 text-sm font-semibold text-btn-ink transition-opacity duration-200 hover:opacity-90"
             >
               Book appointment
             </Link>
             <ThemeToggle />
-          </nav>
+            <MobileMenu links={NAV.map(({ href, label }) => ({ href, label }))} />
+          </div>
         </div>
       </header>
 
