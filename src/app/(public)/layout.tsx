@@ -6,8 +6,11 @@ import { buildWhatsAppLink } from "@/lib/site";
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: "/about", label: "About & Team" },
+  // Anchor sections on the landing page; hidden on small screens where the
+  // header only fits the core routes plus the booking CTA.
+  { href: "/#conditions", label: "Conditions", hideBelow: "lg" as const },
+  { href: "/#stories", label: "Patient Stories", hideBelow: "lg" as const },
 ];
 
 /**
@@ -42,7 +45,9 @@ export default async function PublicLayout({ children }: { children: React.React
               <Link
                 key={item.href}
                 href={item.href}
-                className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-ivory-dim transition-colors duration-150 hover:text-ivory"
+                className={`cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-ivory-dim transition-colors duration-150 hover:text-ivory ${
+                  "hideBelow" in item ? `hidden ${item.hideBelow}:inline` : ""
+                }`}
               >
                 {item.label}
               </Link>
