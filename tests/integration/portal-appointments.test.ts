@@ -169,8 +169,9 @@ describe("portal appointment mutations", () => {
       actorId: a.user.id,
     });
 
-    expect(appt.bookedVia).toBe("portal");
-    expect(appt.therapistId).toBe(t.id);
-    expect(appt.patientId).toBe(a.patient.id);
+    expect(appt.appointment.bookedVia).toBe("portal");
+    expect(appt.appointment.therapistId).toBe(t.id);
+    expect(appt.appointment.patientId).toBe(a.patient.id);
+    expect(appt.therapistName).toBe("Dr. A");
   });
 });

@@ -87,7 +87,7 @@ export async function hasSubmittedIntake(patientId: string): Promise<boolean> {
 
 // ─────────────────── Portal appointment mutations ───────────────────
 // Every mutation checks ownership FIRST, before touching the booking engine:
-// a forged id belonging to another patient reads as "not found", never чужой
+// a forged id belonging to another patient reads as "not found", never another patient's data.
 // data, and never reaches the engine call.
 
 async function ownedAppointment(patientId: string, appointmentId: string) {
@@ -142,7 +142,7 @@ export async function portalBookAppointment(args: {
     if (!match) throw new Error("No therapist is free at that time — pick another slot.");
     therapistId = match.therapistId;
   }
-  return bookAppointment({
+  const appointment = await bookAppointment({
     patientId: args.patientId,
     serviceId: args.serviceId,
     therapistId,
@@ -151,6 +151,8 @@ export async function portalBookAppointment(args: {
     reasonForVisit: args.reason ?? null,
     actorId: args.actorId,
   });
+  const therapist = await prisma.user.findUnique({ where: { id: therapistId }, select: { name: true } });
+  return { appointment, therapistName: therapist?.name ?? null };
 }
 
 /** UTC instant → Lagos calendar day (WAT is UTC+1 year-round, no DST). */

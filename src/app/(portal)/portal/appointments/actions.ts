@@ -67,7 +67,7 @@ export async function portalBook(prev: ActionState, formData: FormData): Promise
   if (!parsed.success) return toFieldErrors(parsed.error, "Check the highlighted fields");
 
   try {
-    await portalBookAppointment({
+    const { therapistName } = await portalBookAppointment({
       patientId,
       serviceId: parsed.data.serviceId,
       therapistId: parsed.data.therapistId,
@@ -75,6 +75,10 @@ export async function portalBook(prev: ActionState, formData: FormData): Promise
       reason: parsed.data.reasonForVisit ?? undefined,
       actorId: user.id,
     });
+    revalidatePortal();
+    return actionOk(
+      therapistName ? `Appointment booked with ${therapistName}` : "Appointment booked",
+    );
   } catch (error) {
     if (error instanceof SlotTakenError) {
       return actionFailed("That slot was just taken — pick another");
@@ -84,9 +88,6 @@ export async function portalBook(prev: ActionState, formData: FormData): Promise
     }
     return actionFailed("Could not save the booking. Try again or contact the clinic.");
   }
-
-  revalidatePortal();
-  return actionOk("Appointment booked");
 }
 
 export async function portalReschedule(

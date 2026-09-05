@@ -92,6 +92,13 @@ export function PortalBookForm({
 
       <FormStatus state={state} />
 
+      {selected.therapistId === "" && slots.length > 0 && (
+        <p className="text-sm text-ivory-dim">
+          No preference selected — a free therapist will be assigned to your slot and
+          named on your confirmation.
+        </p>
+      )}
+
       <div>
         {slots.length > 0 ? (
           <SubmitButton>Confirm booking</SubmitButton>
