@@ -211,7 +211,7 @@ test.describe("patient authentication", () => {
     await patientLogin(page, PATIENT_PHONE, PATIENT_PASSWORD);
     await expect(page).toHaveURL(/\/portal$/);
 
-    expect(await navLabels(page)).toEqual(["Dashboard", "Appointments", "My profile", "Payments"]);
+    expect(await navLabels(page)).toEqual(["Dashboard", "Appointments", "My profile", "Intake form", "Payments"]);
   });
 
   test("a patient cannot reach the staff area", async ({ page }) => {

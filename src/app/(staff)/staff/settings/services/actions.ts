@@ -21,6 +21,11 @@ export async function addService(_prev: ActionState, formData: FormData): Promis
   }
 
   revalidatePath(SERVICES_PATH);
+  // The public catalog pages are prerendered, so a mutation must revalidate
+  // them too — otherwise an admin edit never appears publicly without a
+  // rebuild (PRD-02 FR3: edits propagate with no deploy).
+  revalidatePath("/services");
+  revalidatePath("/");
   return actionOk(`${parsed.data.name} added`);
 }
 
@@ -40,6 +45,9 @@ export async function editService(_prev: ActionState, formData: FormData): Promi
   }
 
   revalidatePath(SERVICES_PATH);
+  // Same public-catalog staleness as addService: keep the prerendered pages fresh.
+  revalidatePath("/services");
+  revalidatePath("/");
   return actionOk(`${parsed.data.name} updated`);
 }
 
@@ -56,4 +64,7 @@ export async function toggleServiceActive(formData: FormData): Promise<void> {
 
   await setServiceActive(id, nextActive);
   revalidatePath(SERVICES_PATH);
+  // Deactivation must hide the service publicly without a rebuild either.
+  revalidatePath("/services");
+  revalidatePath("/");
 }

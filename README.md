@@ -4,7 +4,7 @@ Physiotherapy clinic management platform for a single clinic in Nigeria: public 
 
 ## Status
 
-Sub-projects 1 (Foundation), 2 (Clinic configuration) and 3 (Booking engine) are complete. Sub-project 3 ships the slot engine with a database-backed no-double-booking guarantee, the appointment status machine, walk-in and manual booking, the staff agenda and week views, and the E2E journeys that cover them. Operational features arrive with their own sub-projects.
+Sub-projects 1 (Foundation), 2 (Clinic configuration), 3 (Booking engine) and 5 (Patient portal) are complete. Sub-project 5 ships portal login/registration with staff-approved account linking, the patient dashboard with waiting and empty states, portal appointment booking/reschedule/cancel with cutoff and ownership enforcement, the digital intake form with consent, and profile editing with required email — plus the E2E journeys that cover them. Operational features arrive with their own sub-projects.
 
 | # | Sub-project | State |
 |---|---|---|
@@ -12,7 +12,7 @@ Sub-projects 1 (Foundation), 2 (Clinic configuration) and 3 (Booking engine) are
 | 2 | Clinic config, services, therapist availability | Done |
 | 3 | Booking engine, staff calendar, walk-ins | Done |
 | 4 | Public website | Not started |
-| 5 | Patient portal + intake form | Not started |
+| 5 | Patient portal + intake form | Done |
 | 6 | Clinical documentation & treatment plans | Not started |
 | 7 | Billing & payments | Not started |
 | 8 | Notifications & reminders (+ OTP, password reset) | Not started |
@@ -20,7 +20,7 @@ Sub-projects 1 (Foundation), 2 (Clinic configuration) and 3 (Booking engine) are
 | 10 | Admin remainder | Not started |
 | 11 | Capacitor mobile app | Not started |
 
-The staff and portal dashboards in place today are deliberate placeholders. Real screens arrive in sub-projects 3, 5, 7, 9 and 10.
+The staff dashboard in place today is a deliberate placeholder; the portal dashboard shipped with sub-project 5. Remaining screens arrive in sub-projects 7, 9 and 10.
 
 ## Requirements
 

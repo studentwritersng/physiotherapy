@@ -61,8 +61,8 @@ describe("staff navigation", () => {
     });
   });
 
-  it("gives the patient portal its four sections", () => {
+  it("gives the patient portal its five sections", () => {
     const labels = portalLinks().map((l) => l.label);
-    expect(labels).toEqual(["Dashboard", "Appointments", "My profile", "Payments"]);
+    expect(labels).toEqual(["Dashboard", "Appointments", "My profile", "Intake form", "Payments"]);
   });
 });
