@@ -27,7 +27,7 @@ export const patientLoginSchema = z.object({
 export const patientRegisterSchema = z.object({
   fullName: z.string().trim().min(2, "Enter your full name"),
   phone: phoneSchema,
-  email: z.string().trim().email("Enter a valid email").optional().or(z.literal("")),
+  email: z.string().trim().email("Enter a valid email address"),
   password: passwordSchema,
 });
 

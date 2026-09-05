@@ -161,34 +161,18 @@ export async function registerPatient(
       data: { name: input.fullName.trim(), email, phone, passwordHash, role: "patient" },
     });
 
-    // PRD-01 §3.1: a front-desk walk-in record is claimed rather than duplicated.
-    const lead = await tx.patient.findFirst({
-      where: { phone, userId: null, deletedAt: null },
-      orderBy: { createdAt: "asc" },
+    // Sub-project 5 (spec §6): a matching walk-in lead is NOT auto-linked.
+    // Staff approve the link explicitly via approvePortalLink.
+    await tx.patient.create({
+      data: {
+        patientCode: await nextPatientCode(tx),
+        userId: created.id,
+        fullName: input.fullName.trim(),
+        phone,
+        email,
+        status: "registered",
+      },
     });
-
-    if (lead) {
-      await tx.patient.update({
-        where: { id: lead.id },
-        data: {
-          userId: created.id,
-          status: "registered",
-          fullName: input.fullName.trim(),
-          email: email ?? lead.email,
-        },
-      });
-    } else {
-      await tx.patient.create({
-        data: {
-          patientCode: await nextPatientCode(tx),
-          userId: created.id,
-          fullName: input.fullName.trim(),
-          phone,
-          email,
-          status: "registered",
-        },
-      });
-    }
 
     return created;
   });

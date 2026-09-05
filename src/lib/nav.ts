@@ -21,12 +21,14 @@ export function staffLinksFor(role: UserRole): NavLink[] {
   const therapist: NavLink[] = [
     { href: "/staff/appointments", label: "My schedule", available: true },
     { href: "/staff/patients", label: "My patients", available: false, note: "Sub-project 6" },
+    { href: "/staff/portal-links", label: "Portal links", available: true },
   ];
 
   const reception: NavLink[] = [
     { href: "/staff/appointments", label: "Appointments", available: true },
     { href: "/staff/patients", label: "Patients", available: false, note: "Sub-project 10" },
     { href: "/staff/payments", label: "Payments", available: false, note: "Sub-project 7" },
+    { href: "/staff/portal-links", label: "Portal links", available: true },
   ];
 
   const adminOnly: NavLink[] = [

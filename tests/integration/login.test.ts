@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { testPrisma, truncateAll } from "../helpers/db";
 import { login, registerPatient, changePassword, normalisePhone } from "@/server/auth/login";
+import { patientRegisterSchema } from "@/lib/zod/auth";
 import { hashPassword } from "@/server/auth/password";
 import { resolveSession } from "@/server/auth/session";
 import { RATE_LIMIT_MAX_ATTEMPTS } from "@/lib/constants";
@@ -171,45 +172,66 @@ describe("registerPatient", () => {
     expect(await resolveSession(result.token)).not.toBeNull();
   });
 
-  it("claims an existing walk-in lead with the same phone instead of duplicating", async () => {
-    const lead = await testPrisma.patient.create({
-      data: {
-        patientCode: "TP-00001",
-        fullName: "Ada Obi",
-        phone: "+2348031234567",
-        status: "lead",
-      },
-    });
-
-    const result = await registerPatient(
-      { fullName: "Ada Obi", phone: "08031234567", password: "newpass1" },
+  it("refuses when the phone already belongs to a login", async () => {
+    await registerPatient(
+      { fullName: "Ada Obi", phone: "08031234567", email: "ada@example.com", password: "newpass1" },
       META,
     );
-    expect(result.ok).toBe(true);
-
-    expect(await testPrisma.patient.count()).toBe(1);
-    const claimed = await testPrisma.patient.findUniqueOrThrow({ where: { id: lead.id } });
-    expect(claimed.status).toBe("registered");
-    expect(claimed.userId).not.toBeNull();
-  });
-
-  it("refuses when the phone already belongs to a login", async () => {
-    await registerPatient({ fullName: "Ada Obi", phone: "08031234567", password: "newpass1" }, META);
     const again = await registerPatient(
-      { fullName: "Someone Else", phone: "08031234567", password: "newpass1" },
+      {
+        fullName: "Someone Else",
+        phone: "08031234567",
+        email: "someone@example.com",
+        password: "newpass1",
+      },
       META,
     );
     expect(again).toEqual({ ok: false, reason: "phone_taken" });
   });
 
   it("issues sequential patient codes", async () => {
-    await registerPatient({ fullName: "One", phone: "08031234567", password: "newpass1" }, META);
-    await registerPatient({ fullName: "Two", phone: "08039999999", password: "newpass1" }, META);
+    await registerPatient(
+      { fullName: "One", phone: "08031234567", email: "one@example.com", password: "newpass1" },
+      META,
+    );
+    await registerPatient(
+      { fullName: "Two", phone: "08039999999", email: "two@example.com", password: "newpass1" },
+      META,
+    );
 
     const codes = (await testPrisma.patient.findMany({ orderBy: { createdAt: "asc" } })).map(
       (p) => p.patientCode,
     );
     expect(codes).toEqual(["TP-00001", "TP-00002"]);
+  });
+
+  it("rejects registration without an email", async () => {
+    const parsed = patientRegisterSchema.safeParse({
+      fullName: "Email Less",
+      phone: "08030000001",
+      password: "Password1",
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("leaves a matching walk-in lead unlinked for staff to approve", async () => {
+    const lead = await testPrisma.patient.create({
+      data: {
+        patientCode: "T-000099",
+        fullName: "Walk In",
+        phone: normalisePhone("08030000002"),
+        email: "walk@example.com",
+        status: "lead",
+      },
+    });
+    const result = await registerPatient(
+      { fullName: "Walk In", phone: "08030000002", email: "walk@example.com", password: "Password1" },
+      {},
+    );
+    expect(result.ok).toBe(true);
+    const untouched = await testPrisma.patient.findUniqueOrThrow({ where: { id: lead.id } });
+    expect(untouched.userId).toBeNull();
+    expect(untouched.status).toBe("lead");
   });
 });
 

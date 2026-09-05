@@ -7,7 +7,7 @@ export default function PortalRegisterPage() {
   return (
     <AuthForm
       title="Create your account"
-      subtitle="If you have visited the clinic before, use the same phone number and we will link your records."
+      subtitle="Use the same phone number you gave at the clinic — staff will link your records after you register."
       endpoint="/api/auth/register"
       submitLabel="Create account"
       fields={[
@@ -19,7 +19,7 @@ export default function PortalRegisterPage() {
           autoComplete: "tel",
           hint: "e.g. 08031234567",
         },
-        { label: "Email", name: "email", type: "email", autoComplete: "email", required: false },
+        { label: "Email", name: "email", type: "email", autoComplete: "email", required: true },
         {
           label: "Password",
           name: "password",
