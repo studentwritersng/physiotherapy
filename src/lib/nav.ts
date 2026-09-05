@@ -53,10 +53,10 @@ export function portalLinks(): NavLink[] {
     {
       href: "/portal/appointments",
       label: "Appointments",
-      available: false,
-      note: "Sub-project 5",
+      available: true,
     },
-    { href: "/portal/profile", label: "My profile", available: false, note: "Sub-project 5" },
+    { href: "/portal/profile", label: "My profile", available: true },
+    { href: "/portal/intake", label: "Intake form", available: true },
     { href: "/portal/payments", label: "Payments", available: false, note: "Sub-project 7" },
   ];
 }
