@@ -174,8 +174,33 @@ export default async function PortalDashboardPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-lg border border-line bg-surface p-6">
           <h2 className="font-display text-xl font-medium text-ivory">Treatment plan</h2>
-          {dash.treatmentPlan?.summary ? (
-            <p className="mt-2 text-sm text-ivory">{dash.treatmentPlan.summary}</p>
+          {dash.treatmentPlan ? (
+            <>
+              {dash.treatmentPlan.summary && (
+                <p className="mt-2 text-sm text-ivory">{dash.treatmentPlan.summary}</p>
+              )}
+              {dash.treatmentPlan.exercises.length > 0 ? (
+                <ul className="mt-3 flex flex-col">
+                  {dash.treatmentPlan.exercises.map((ex) => (
+                    <li
+                      key={ex.name}
+                      className="border-b border-dashed border-line py-2 last:border-b-0 last:pb-0"
+                    >
+                      <p className="text-sm font-medium text-ivory">{ex.name}</p>
+                      {ex.description && (
+                        <p className="mt-0.5 text-xs text-ivory-dim">{ex.description}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                !dash.treatmentPlan.summary && (
+                  <p className="mt-2 text-sm text-ivory-dim">
+                    Your therapist hasn&apos;t shared plan details yet.
+                  </p>
+                )
+              )}
+            </>
           ) : (
             <p className="mt-2 text-sm text-ivory-dim">
               Your therapist hasn&apos;t shared a plan yet.

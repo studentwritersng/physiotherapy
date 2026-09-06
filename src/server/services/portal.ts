@@ -18,7 +18,7 @@ export async function requireLinkedPatientId(userId: string): Promise<string | n
 
 /** Single batched read for the dashboard. Empty states are the caller's job. */
 export async function getPortalDashboard(patientId: string, now: Date = new Date()) {
-  const [upcoming, recent, planRow, openInvoices] = await Promise.all([
+  const [upcoming, recent, settings, planRow, openInvoices] = await Promise.all([
     prisma.appointment.findMany({
       where: { patientId, scheduledStart: { gte: now }, status: "scheduled", deletedAt: null },
       include: {
@@ -36,6 +36,7 @@ export async function getPortalDashboard(patientId: string, now: Date = new Date
       orderBy: { scheduledStart: "desc" },
       take: 3,
     }),
+    prisma.clinicSettings.findUnique({ where: { id: 1 }, select: { showClinicalToPatients: true } }),
     // Sub-project 6 owns plans; read the flag-gated row so the card lights up alone.
     // NOTE: treatment_plans has no `summary`/`deletedAt` columns — `goals ??
     // planDetails` is exposed as `summary` so this function's shape matches the brief.
@@ -52,8 +53,18 @@ export async function getPortalDashboard(patientId: string, now: Date = new Date
       select: { totalAmount: true, payments: { select: { amount: true } } },
     }),
   ]);
-  const treatmentPlan = planRow
-    ? { id: planRow.id, summary: planRow.goals ?? planRow.planDetails ?? null }
+  // Portal exposure needs BOTH the clinic master switch AND the plan flag
+  // (spec §3.3): either off hides the whole card, exercises included.
+  const exposed = (settings?.showClinicalToPatients ?? false) ? planRow : null;
+  const exercises = exposed
+    ? await prisma.exercise.findMany({
+        where: { treatmentPlanId: exposed.id, patientVisible: true },
+        select: { name: true, description: true },
+        orderBy: { sortOrder: "asc" },
+      })
+    : [];
+  const treatmentPlan = exposed
+    ? { id: exposed.id, summary: exposed.goals ?? exposed.planDetails ?? null, exercises }
     : null;
   const balanceDue = openInvoices.reduce(
     (sum, inv) =>

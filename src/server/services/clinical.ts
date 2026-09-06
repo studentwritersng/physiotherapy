@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/server/db";
 import { ForbiddenError } from "@/server/auth/rbac";
 import type { SessionUser } from "@/server/auth/session";
-import { assessmentSchema, noteSchema, type AssessmentInput, type NoteInput } from "@/lib/zod/clinical";
+import { assessmentSchema, exerciseSchema, exerciseUpdateSchema, noteSchema, planSchema, planUpdateSchema, type AssessmentInput, type ExerciseInput, type ExerciseUpdateInput, type NoteInput, type PlanInput, type PlanUpdateInput } from "@/lib/zod/clinical";
 import { assertCanReadClinical, canViewPatient } from "@/server/services/patient";
 import { todayKey } from "@/lib/slots";
 
@@ -207,5 +207,81 @@ export async function listPatientAppointments(patientId: string) {
     where: { patientId, deletedAt: null },
     orderBy: { scheduledStart: "desc" },
     include: { sessionNote: { select: { id: true } } },
+  });
+}
+
+// ─────────────────── Treatment plans + exercises ───────────────────
+
+/**
+ * Creates a treatment plan for a patient. An explicit episodeId must belong to
+ * the patient; otherwise the plan joins the open episode when one exists, or
+ * stands outside episodes (null) like a pre-episode plan.
+ */
+export async function createTreatmentPlan(actor: SessionUser, patientId: string, input: PlanInput) {
+  await assertCanWriteClinical(actor, patientId);
+  const parsed = planSchema.parse(input);
+  const { episodeId: choice, ...fields } = parsed;
+  let episodeId: string | null = null;
+  if (choice) {
+    const episode = await prisma.episodeOfCare.findFirst({
+      where: { id: choice, patientId },
+    });
+    if (!episode) throw new Error("Episode not found");
+    episodeId = episode.id;
+  } else {
+    episodeId = (await getOpenEpisode(patientId))?.id ?? null;
+  }
+  return prisma.treatmentPlan.create({
+    data: { ...fields, patientId, therapistId: actor.id, episodeId },
+  });
+}
+
+/**
+ * Plain update for plan edits, status changes (active/completed/on_hold), and
+ * the patientVisible toggle. Scoped through the plan's patient so a forged
+ * plan id fails closed.
+ */
+export async function updateTreatmentPlan(actor: SessionUser, planId: string, input: PlanUpdateInput) {
+  const plan = await prisma.treatmentPlan.findUnique({ where: { id: planId } });
+  if (!plan) throw new Error("Treatment plan not found");
+  await assertCanWriteClinical(actor, plan.patientId);
+  const parsed = planUpdateSchema.parse(input);
+  return prisma.treatmentPlan.update({ where: { id: planId }, data: parsed });
+}
+
+/** Adds one exercise row to a plan; display order is sortOrder ascending. */
+export async function addExercise(actor: SessionUser, planId: string, input: ExerciseInput) {
+  const plan = await prisma.treatmentPlan.findUnique({ where: { id: planId } });
+  if (!plan) throw new Error("Treatment plan not found");
+  await assertCanWriteClinical(actor, plan.patientId);
+  const parsed = exerciseSchema.parse(input);
+  return prisma.exercise.create({ data: { ...parsed, treatmentPlanId: planId } });
+}
+
+/**
+ * Plain update for exercise edits, reorder, and the patientVisible toggle.
+ * Scoped through the plan's patient so a forged exercise id fails closed.
+ */
+export async function updateExercise(actor: SessionUser, exerciseId: string, input: ExerciseUpdateInput) {
+  const exercise = await prisma.exercise.findUnique({
+    where: { id: exerciseId },
+    include: { treatmentPlan: { select: { patientId: true } } },
+  });
+  if (!exercise) throw new Error("Exercise not found");
+  await assertCanWriteClinical(actor, exercise.treatmentPlan.patientId);
+  const parsed = exerciseUpdateSchema.parse(input);
+  return prisma.exercise.update({ where: { id: exerciseId }, data: parsed });
+}
+
+/**
+ * Plans with their exercises (sortOrder ascending) for the #plans section.
+ * Unauthenticated by design: callers gate with getPatientForActor first
+ * (null → notFound), like the record shell does.
+ */
+export async function getPlansWithExercises(patientId: string) {
+  return prisma.treatmentPlan.findMany({
+    where: { patientId },
+    orderBy: { createdAt: "desc" },
+    include: { exercises: { orderBy: { sortOrder: "asc" } } },
   });
 }

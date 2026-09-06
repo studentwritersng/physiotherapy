@@ -51,3 +51,74 @@ export const noteSchema = z.object({
 
 export type NoteInput = z.input<typeof noteSchema>;
 export type NoteOutput = z.output<typeof noteSchema>;
+
+/**
+ * Checkbox coercion for FormData: checked posts "on", unchecked posts nothing.
+ * Service callers pass real booleans; both arrive here as true/false.
+ */
+const checkbox = z.preprocess(
+  (v) => v === true || v === "true" || v === "on" || v === "1",
+  z.boolean(),
+);
+
+const planStatus = z.enum(["active", "completed", "on_hold"]);
+
+/**
+ * Treatment plan (PRD-05): goals/details/frequency/duration/focusAreas are
+ * optional free text so an in-progress plan saves partial. Status defaults to
+ * active; patientVisible defaults to hidden (portal exposure needs the flag
+ * AND the clinic master switch). episodeId normalizes "" to undefined.
+ */
+export const planSchema = z.object({
+  goals: optionalText,
+  planDetails: optionalText,
+  frequency: optionalText,
+  duration: optionalText,
+  focusAreas: optionalText,
+  status: planStatus.default("active"),
+  patientVisible: checkbox.default(false),
+  episodeId: episodeIdField,
+});
+
+export type PlanInput = z.input<typeof planSchema>;
+export type PlanOutput = z.output<typeof planSchema>;
+
+/** Partial update: status change and visibility toggles are plain updates. */
+export const planUpdateSchema = z.object({
+  goals: optionalText.optional(),
+  planDetails: optionalText.optional(),
+  frequency: optionalText.optional(),
+  duration: optionalText.optional(),
+  focusAreas: optionalText.optional(),
+  status: planStatus.optional(),
+  patientVisible: checkbox.optional(),
+});
+
+export type PlanUpdateInput = z.input<typeof planUpdateSchema>;
+
+/**
+ * Exercise: name is the only required field. sortOrder pins display order
+ * (ascending); patientVisible defaults to hidden so a new row never leaks to
+ * the portal before the therapist flips it.
+ */
+export const exerciseSchema = z.object({
+  name: z.string().trim().min(1, "Give the exercise a name").max(200),
+  description: optionalText,
+  imageUrl: optionalText,
+  sortOrder: z.coerce.number().int().min(0).default(0),
+  patientVisible: checkbox.default(false),
+});
+
+export type ExerciseInput = z.input<typeof exerciseSchema>;
+export type ExerciseOutput = z.output<typeof exerciseSchema>;
+
+/** Partial update for exercise edits and visibility toggles. */
+export const exerciseUpdateSchema = z.object({
+  name: z.string().trim().min(1, "Give the exercise a name").max(200).optional(),
+  description: optionalText.optional(),
+  imageUrl: optionalText.optional(),
+  sortOrder: z.coerce.number().int().min(0).optional(),
+  patientVisible: checkbox.optional(),
+});
+
+export type ExerciseUpdateInput = z.input<typeof exerciseUpdateSchema>;

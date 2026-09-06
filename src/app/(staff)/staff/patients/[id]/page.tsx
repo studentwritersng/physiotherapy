@@ -8,11 +8,19 @@ import {
   getPatientForActor,
 } from "@/server/services/patient";
 import { getRecordTimeline } from "@/server/services/clinical";
-import { getSoapLabels, listPatientAppointments } from "@/server/services/clinical";
+import { getPlansWithExercises, getSoapLabels, listPatientAppointments } from "@/server/services/clinical";
 import { dischargeOpenEpisode, saveAssessment } from "./assessments/actions";
 import { AssessmentForm, DischargeEpisodeButton } from "./assessments/AssessmentForm";
 import { saveSessionNote } from "./notes/actions";
 import { NoteForm } from "./notes/NoteForm";
+import {
+  saveExercise,
+  savePlan,
+  setExerciseVisibility,
+  setPlanStatus,
+  setPlanVisibility,
+} from "./plans/actions";
+import { PlanBlock, PlanForm } from "./plans/PlanForms";
 import { getLatestIntake } from "@/server/services/intake";
 import { TIMEZONE } from "@/lib/constants";
 import type { EpisodeOfCare } from "@/generated/prisma/client";
@@ -111,7 +119,8 @@ export default async function PatientRecordPage({
   const openEpisodes = timeline.episodes.filter((e) => e.status === "active");
   const latestAssessment = timeline.assessments[0] ?? null;
   const noteGroups = groupByEpisode(timeline.notes, timeline.episodes);
-  const planGroups = groupByEpisode(timeline.plans, timeline.episodes);
+  const plansWithExercises = canReadClinical ? await getPlansWithExercises(patient.id) : [];
+  const planGroups = groupByEpisode(plansWithExercises, timeline.episodes);
   const documentGroups = groupByEpisode(timeline.documents, timeline.episodes);
 
   // Note form data: labels for the six fields, appointments for the picker.
@@ -335,9 +344,9 @@ export default async function PatientRecordPage({
             <Card
               title="Treatment plans"
               description={
-                timeline.plans.length === 0
+                plansWithExercises.length === 0
                   ? "No treatment plans yet."
-                  : `${timeline.plans.length} plan${timeline.plans.length === 1 ? "" : "s"}, grouped by episode.`
+                  : `${plansWithExercises.length} plan${plansWithExercises.length === 1 ? "" : "s"}, grouped by episode.`
               }
             >
               {planGroups.map(({ episode, items }) => (
@@ -345,26 +354,23 @@ export default async function PatientRecordPage({
                   <h3 className="text-sm font-semibold text-ivory-dim">
                     <EpisodeLabel episode={episode} />
                   </h3>
-                  <ul className="mt-1 flex flex-col">
+                  <div className="mt-1 flex flex-col">
                     {items.map((p) => (
-                      <li
+                      <PlanBlock
                         key={p.id}
-                        className="border-b border-dashed border-line py-2 text-sm last:border-b-0"
-                      >
-                        <span className="font-medium text-ivory">
-                          {p.goals ? p.goals.slice(0, 120) : "Treatment plan"}
-                        </span>{" "}
-                        <span className="text-xs text-ivory-faint">
-                          {p.status.replace("_", " ")} ·{" "}
-                        </span>
-                        <span className="tabular text-xs text-ivory-faint">
-                          {formatDateTime(p.createdAt)}
-                        </span>
-                      </li>
+                        plan={p}
+                        exercises={p.exercises}
+                        patientId={patient.id}
+                        statusAction={setPlanStatus}
+                        visibilityAction={setPlanVisibility}
+                        exerciseAction={saveExercise}
+                        exerciseVisibilityAction={setExerciseVisibility}
+                      />
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ))}
+              <PlanForm action={savePlan} patientId={patient.id} />
             </Card>
           </section>
 
