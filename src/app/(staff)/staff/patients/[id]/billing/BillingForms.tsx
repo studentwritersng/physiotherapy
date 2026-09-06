@@ -11,12 +11,24 @@ type ItemRow = { description: string; quantity: string; unitPrice: string };
 
 const EMPTY_ROW: ItemRow = { description: "", quantity: "1", unitPrice: "" };
 
+export type CatalogService = { id: string; name: string; defaultPrice: string };
+
 /**
  * Invoice creator for the hub billing section. The patient is preselected
  * (hidden field); item rows are client-side add/remove with plain useState
- * and post as one action via repeated field names.
+ * and post as one action via repeated field names. "Add from catalog"
+ * appends a row prefilled from the service default price — the row stays
+ * fully editable afterwards and server-side totals recompute on submit.
  */
-export function InvoiceForm({ action, patientId }: { action: Action; patientId: string }) {
+export function InvoiceForm({
+  action,
+  patientId,
+  services = [],
+}: {
+  action: Action;
+  patientId: string;
+  services?: CatalogService[];
+}) {
   const [state, formAction] = useActionState(action, IDLE_STATE);
   const [rows, setRows] = useState<ItemRow[]>([{ ...EMPTY_ROW }]);
   const errors = state.ok === false ? state.fieldErrors : {};
@@ -24,10 +36,42 @@ export function InvoiceForm({ action, patientId }: { action: Action; patientId: 
   const setRow = (index: number, patch: Partial<ItemRow>) =>
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
+  const addFromCatalog = (serviceId: string) => {
+    const service = services.find((s) => s.id === serviceId);
+    if (!service) return;
+    setRows((prev) => [
+      ...prev,
+      { description: service.name, quantity: "1", unitPrice: service.defaultPrice },
+    ]);
+  };
+
   return (
     <form action={formAction} className="mt-4 flex flex-col gap-4">
       <input type="hidden" name="patientId" value={patientId} />
 
+      {services.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="invoice-catalog" className="text-sm font-medium text-ivory">
+            Add from catalog{" "}
+            <span className="font-normal text-ivory-faint">(prefills price, still editable)</span>
+          </label>
+          <select
+            id="invoice-catalog"
+            value=""
+            onChange={(e) => {
+              if (e.target.value) addFromCatalog(e.target.value);
+            }}
+            className="min-h-11 cursor-pointer rounded-md border border-line bg-surface px-3 py-2 text-base text-ivory"
+          >
+            <option value="">Choose a service…</option>
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} · ₦{s.defaultPrice}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="flex flex-col gap-3">
         {rows.map((row, i) => (
           <fieldset

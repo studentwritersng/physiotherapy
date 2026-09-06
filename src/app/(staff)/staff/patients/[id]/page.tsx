@@ -26,6 +26,7 @@ import { DocumentUpload } from "./documents/DocumentUpload";
 import { createPatientInvoice, recordPatientPayment } from "./billing/actions";
 import { InvoiceForm, PaymentForm } from "./billing/BillingForms";
 import { listInvoicesWithBalances } from "@/server/services/billing";
+import { listActiveServices } from "@/server/services/service-catalog";
 import { MAX_DOCUMENT_BYTES, isStorageConfigured } from "@/server/storage/r2";
 import { getLatestIntake } from "@/server/services/intake";
 import { TIMEZONE } from "@/lib/constants";
@@ -161,6 +162,15 @@ export default async function PatientRecordPage({
   // merely hidden. The actions enforce the same gate.
   const canBill = user.role === "admin" || user.role === "receptionist";
   const invoices = canBill ? await listInvoicesWithBalances(patient.id) : [];
+  // Decimal defaults stay decimal-strings across the server/client boundary —
+  // String() only, never Number(), so no float rounding enters the form.
+  const catalogServices = canBill
+    ? (await listActiveServices()).map((s) => ({
+        id: s.id,
+        name: s.name,
+        defaultPrice: String(s.defaultPrice),
+      }))
+    : [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -305,7 +315,7 @@ export default async function PatientRecordPage({
                 )}
               </div>
             ))}
-            <InvoiceForm action={createPatientInvoice} patientId={patient.id} />
+            <InvoiceForm action={createPatientInvoice} patientId={patient.id} services={catalogServices} />
           </Card>
         </section>
       )}

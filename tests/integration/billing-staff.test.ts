@@ -6,6 +6,8 @@ import {
   recordManualPayment,
   getPatientBalance,
   getRevenueByMethod,
+  listInvoicesWithBalances,
+  listRecentPayments,
 } from "@/server/services/billing";
 
 beforeEach(async () => {
@@ -32,6 +34,11 @@ async function makeAdmin(phone: string) {
   });
 }
 
+async function makeReceptionist(phone: string) {
+  return testPrisma.user.create({
+    data: { name: "Receptionist", phone, passwordHash: "x", role: "receptionist" },
+  });
+}
 async function makePatient(code: string, phone: string) {
   return testPrisma.patient.create({
     data: { patientCode: code, fullName: code, phone, status: "registered" },
@@ -80,5 +87,29 @@ describe("billing staff views", () => {
     await recordManualPayment(a, { invoiceId: open.id, amount: "3000", method: "bank_transfer" });
 
     expect(await getPatientBalance(patient.id)).toBe("7000.00");
+  });
+
+  it("receptionist writes and reads scoped balances and revenue", async () => {
+    const receptionist = await makeReceptionist("+2348013000003");
+    const patient = await makePatient("TS-00003", "+2348023000003");
+    const r = actor({ id: receptionist.id, role: "receptionist" });
+
+    const invoice = await createInvoice(r, {
+      patientId: patient.id,
+      items: [{ description: "Session", quantity: 1, unitPrice: "12000" }],
+    });
+    await recordManualPayment(r, { invoiceId: invoice.id, amount: "5000", method: "cash" });
+
+    expect(await getPatientBalance(patient.id)).toBe("7000.00");
+
+    const revenue = await getRevenueByMethod(new Date("2020-01-01"), new Date("2030-01-01"));
+    expect(new Map(revenue.map((x) => [x.method, x.total])).get("cash")).toBe("5000.00");
+
+    const listed = await listInvoicesWithBalances(patient.id);
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.remainder).toBe("7000.00");
+
+    const recent = await listRecentPayments(50);
+    expect(recent.map((p) => p.invoiceId)).toContain(invoice.id);
   });
 });
