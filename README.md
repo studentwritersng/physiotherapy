@@ -4,14 +4,14 @@ Physiotherapy clinic management platform for a single clinic in Nigeria: public 
 
 ## Status
 
-Sub-projects 1 (Foundation), 2 (Clinic configuration), 3 (Booking engine) and 5 (Patient portal) are complete. Sub-project 5 ships portal login/registration with staff-approved account linking, the patient dashboard with waiting and empty states, portal appointment booking/reschedule/cancel with cutoff and ownership enforcement, the digital intake form with consent, and profile editing with required email — plus the E2E journeys that cover them. Operational features arrive with their own sub-projects.
+Sub-projects 1 (Foundation), 2 (Clinic configuration), 3 (Booking engine), 4 (Public website) and 5 (Patient portal) are complete. Sub-project 4 ships the marketing site with live clinic data and unauthenticated booking; sub-project 5 ships portal login/registration with staff-approved account linking, the patient dashboard with waiting and empty states, portal appointment booking/reschedule/cancel with cutoff and ownership enforcement, the digital intake form with consent, and profile editing with required email — plus the E2E journeys that cover them. Operational features arrive with their own sub-projects.
 
 | # | Sub-project | State |
 |---|---|---|
 | 1 | Foundation — schema, auth, RBAC, security | Done |
 | 2 | Clinic config, services, therapist availability | Done |
 | 3 | Booking engine, staff calendar, walk-ins | Done |
-| 4 | Public website | Not started |
+| 4 | Public website | Done |
 | 5 | Patient portal + intake form | Done |
 | 6 | Clinical documentation & treatment plans | Not started |
 | 7 | Billing & payments | Not started |
