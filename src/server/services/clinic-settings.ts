@@ -5,8 +5,10 @@ import {
   EMPTY_OPENING_HOURS,
   openingHoursSchema,
   parseOpeningHours,
+  soapLabelsSchema,
   type ClinicSettingsInput,
   type OpeningHours,
+  type SoapLabelsInput,
 } from "@/lib/zod/clinic";
 
 /** The row with openingHours already parsed, so no consumer touches raw JSON. */
@@ -53,6 +55,21 @@ export async function updateOpeningHours(hours: OpeningHours): Promise<void> {
     where: { id: SINGLETON_ID },
     update: { openingHours: parsed },
     create: { id: SINGLETON_ID, openingHours: parsed },
+  });
+}
+
+/**
+ * Writes the six SOAP relabels. Null/blank values are stored as-is — the
+ * fallback to SOAP defaults happens on read in getSoapLabels, so the form
+ * round-trips exactly what the admin typed.
+ */
+export async function updateSoapLabels(labels: SoapLabelsInput): Promise<void> {
+  const parsed = soapLabelsSchema.parse(labels);
+
+  await prisma.clinicSettings.upsert({
+    where: { id: SINGLETON_ID },
+    update: { soapLabels: parsed },
+    create: { id: SINGLETON_ID, soapLabels: parsed },
   });
 }
 

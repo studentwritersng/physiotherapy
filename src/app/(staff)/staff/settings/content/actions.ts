@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/server/auth/rbac";
-import { getClinicSettings, updateClinicSettings } from "@/server/services/clinic-settings";
+import { getClinicSettings, updateClinicSettings, updateSoapLabels } from "@/server/services/clinic-settings";
 import {
   createTestimonial,
   deleteTestimonial,
   setTestimonialPublished,
 } from "@/server/services/testimonial";
-import { testimonialSchema } from "@/lib/zod/clinic";
+import { soapLabelsSchema, testimonialSchema } from "@/lib/zod/clinic";
 import { actionFailed, actionOk, toFieldErrors, type ActionState } from "@/server/action-state";
 
 const CONTENT_PATH = "/staff/settings/content";
@@ -42,6 +42,25 @@ export async function saveAbout(_prev: ActionState, formData: FormData): Promise
 
   revalidatePath(CONTENT_PATH);
   return actionOk("About content saved");
+}
+
+export async function saveSoapLabels(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireRole("admin");
+
+  const parsed = soapLabelsSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return toFieldErrors(parsed.error, "Check the highlighted fields");
+
+  try {
+    await updateSoapLabels(parsed.data);
+  } catch {
+    return actionFailed("Could not save. Try again.");
+  }
+
+  revalidatePath(CONTENT_PATH);
+  return actionOk("Note labels saved");
 }
 
 export async function addTestimonial(

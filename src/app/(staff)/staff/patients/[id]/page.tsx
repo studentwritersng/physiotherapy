@@ -8,8 +8,11 @@ import {
   getPatientForActor,
 } from "@/server/services/patient";
 import { getRecordTimeline } from "@/server/services/clinical";
+import { getSoapLabels, listPatientAppointments } from "@/server/services/clinical";
 import { dischargeOpenEpisode, saveAssessment } from "./assessments/actions";
 import { AssessmentForm, DischargeEpisodeButton } from "./assessments/AssessmentForm";
+import { saveSessionNote } from "./notes/actions";
+import { NoteForm } from "./notes/NoteForm";
 import { getLatestIntake } from "@/server/services/intake";
 import { TIMEZONE } from "@/lib/constants";
 import type { EpisodeOfCare } from "@/generated/prisma/client";
@@ -110,6 +113,18 @@ export default async function PatientRecordPage({
   const noteGroups = groupByEpisode(timeline.notes, timeline.episodes);
   const planGroups = groupByEpisode(timeline.plans, timeline.episodes);
   const documentGroups = groupByEpisode(timeline.documents, timeline.episodes);
+
+  // Note form data: labels for the six fields, appointments for the picker.
+  // Admins are read-only on notes (only the appointed therapist writes), so
+  // they receive the list without the form.
+  const labels = canReadClinical ? await getSoapLabels() : null;
+  const patientAppointments = canReadClinical ? await listPatientAppointments(patient.id) : [];
+  const appointmentOptions = patientAppointments.map((a) => ({
+    id: a.id,
+    scheduledStart: a.scheduledStart,
+    hasNote: a.sessionNote !== null,
+  }));
+  const canWriteNotes = user.role === "therapist";
 
   return (
     <div className="flex flex-col gap-6">
@@ -294,11 +309,25 @@ export default async function PatientRecordPage({
                         <span className="tabular text-xs text-ivory-faint">
                           {formatDateTime(n.createdAt)}
                         </span>
+                        {n.editedAt && (
+                          <span className="ml-2 text-xs font-medium text-gold">
+                            Edited {formatDateTime(n.editedAt)}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
                 </div>
               ))}
+              {canWriteNotes && labels && (
+                <NoteForm
+                  action={saveSessionNote}
+                  patientId={patient.id}
+                  appointments={appointmentOptions}
+                  existingNotes={timeline.notes}
+                  labels={labels}
+                />
+              )}
             </Card>
           </section>
 

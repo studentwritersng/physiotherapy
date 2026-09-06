@@ -2,8 +2,9 @@ import "server-only";
 import { prisma } from "@/server/db";
 import { ForbiddenError } from "@/server/auth/rbac";
 import type { SessionUser } from "@/server/auth/session";
-import { assessmentSchema, type AssessmentInput } from "@/lib/zod/clinical";
+import { assessmentSchema, noteSchema, type AssessmentInput, type NoteInput } from "@/lib/zod/clinical";
 import { assertCanReadClinical, canViewPatient } from "@/server/services/patient";
+import { todayKey } from "@/lib/slots";
 
 /**
  * Full clinical record for the patient shell at /staff/patients/[id].
@@ -104,5 +105,107 @@ export async function startEpisode(actor: SessionUser, patientId: string, reason
       reason: trimmed,
       status: "active",
     },
+  });
+}
+
+/** The six SOAP note fields, in display order. Keys double as the soapLabels JSON keys. */
+export const SOAP_KEYS = [
+  "subjective",
+  "objective",
+  "treatmentProvided",
+  "patientResponse",
+  "exercisesInstructions",
+  "nextPlan",
+] as const;
+
+export type SoapKey = (typeof SOAP_KEYS)[number];
+
+/** Display labels when the clinic has not set a relabel for a key. */
+export const DEFAULT_SOAP_LABELS: Record<SoapKey, string> = {
+  subjective: "Subjective",
+  objective: "Objective",
+  treatmentProvided: "Treatment provided",
+  patientResponse: "Patient response",
+  exercisesInstructions: "Exercises & instructions",
+  nextPlan: "Next plan",
+};
+
+/**
+ * Display label per SOAP key. Blank or missing relabels fall back to the SOAP
+ * defaults, so the clinic can rename one field without touching the rest.
+ */
+export async function getSoapLabels(): Promise<Record<SoapKey, string>> {
+  const s = await prisma.clinicSettings.findUnique({ where: { id: 1 } });
+  const raw = (s?.soapLabels ?? {}) as Record<string, unknown>;
+  return Object.fromEntries(
+    SOAP_KEYS.map((k) => [
+      k,
+      typeof raw[k] === "string" && raw[k].trim() ? raw[k].trim() : DEFAULT_SOAP_LABELS[k],
+    ]),
+  ) as Record<SoapKey, string>;
+}
+
+/**
+ * Lagos calendar day for an instant, via todayKey (TIMEZONE-derived, never a
+ * hardcoded offset). todayKey takes the instant as its `now` argument.
+ */
+function lagosDayKey(d: Date): string {
+  return todayKey(d);
+}
+
+/**
+ * Creates or updates the single session note for an appointment
+ * (upsert-by-appointment, so resubmission never duplicates). Only the
+ * appointed therapist writes — admins are read-only here, and a therapist
+ * cannot write for another therapist's appointment. The note joins the
+ * patient's open episode when one exists.
+ *
+ * Midnight rule: a same-Lagos-day edit is silent; an edit on a later Lagos
+ * day stamps editedAt/editedBy so late corrections are auditable.
+ */
+export async function submitSessionNote(actor: SessionUser, appointmentId: string, input: NoteInput) {
+  assertCanReadClinical(actor);
+  const appt = await prisma.appointment.findFirst({
+    where: { id: appointmentId, deletedAt: null },
+  });
+  if (!appt) throw new Error("Appointment not found");
+  if (!(await canViewPatient(actor, appt.patientId))) throw new Error("Appointment not found");
+  if (actor.role !== "therapist" || appt.therapistId !== actor.id) {
+    throw new Error("Only the appointed therapist writes session notes");
+  }
+  const parsed = noteSchema.parse(input);
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.sessionNote.findUnique({ where: { appointmentId } });
+    const sameDay = existing && lagosDayKey(existing.createdAt) === lagosDayKey(new Date());
+    // Same lookup as getOpenEpisode, but on the transaction client so the
+    // join and the write stay atomic.
+    const episode = await tx.episodeOfCare.findFirst({
+      where: { patientId: appt.patientId, status: "active" },
+      orderBy: { startedAt: "desc" },
+    });
+    const data = {
+      ...parsed,
+      patientId: appt.patientId,
+      therapistId: actor.id,
+      episodeId: episode?.id ?? null,
+    };
+    if (!existing) return tx.sessionNote.create({ data: { ...data, appointmentId } });
+    if (sameDay) return tx.sessionNote.update({ where: { id: existing.id }, data });
+    return tx.sessionNote.update({
+      where: { id: existing.id },
+      data: { ...data, editedAt: new Date(), editedById: actor.id },
+    });
+  });
+}
+
+/**
+ * Appointments for the note form's appointment picker, newest first.
+ * Soft-deleted rows excluded; callers gate with getPatientForActor first.
+ */
+export async function listPatientAppointments(patientId: string) {
+  return prisma.appointment.findMany({
+    where: { patientId, deletedAt: null },
+    orderBy: { scheduledStart: "desc" },
+    include: { sessionNote: { select: { id: true } } },
   });
 }

@@ -297,6 +297,9 @@ model ClinicSettings {
   rescheduleCutoffHours   Int      @default(2) @map("reschedule_cutoff_hours")
   cancellationCutoffHours Int      @default(2) @map("cancellation_cutoff_hours")
   reminderLeadHours       Int[]    @default([24, 2]) @map("reminder_lead_hours")
+  /// Relabels for the six SOAP note fields, keyed by SOAP_KEYS in clinical.ts.
+  /// Blank/missing keys fall back to SOAP defaults (getSoapLabels).
+  soapLabels Json @default("{}") @map("soap_labels")
   /// Master switch over every per-plan patient_visible flag (spec §3.3).
   showClinicalToPatients  Boolean  @default(false) @map("show_clinical_to_patients")
   onlinePaymentsEnabled   Boolean  @default(false) @map("online_payments_enabled")

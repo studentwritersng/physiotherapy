@@ -33,3 +33,21 @@ export const assessmentSchema = z.object({
 
 export type AssessmentInput = z.input<typeof assessmentSchema>;
 export type AssessmentOutput = z.output<typeof assessmentSchema>;
+
+/**
+ * SOAP session note (PRD-05): one row per appointment, all six fields optional
+ * free text so an in-progress note saves partial. Same ""/absent → null
+ * normalization as the assessment schema — FormData gives every value as a
+ * string.
+ */
+export const noteSchema = z.object({
+  subjective: optionalText,
+  objective: optionalText,
+  treatmentProvided: optionalText,
+  patientResponse: optionalText,
+  exercisesInstructions: optionalText,
+  nextPlan: optionalText,
+});
+
+export type NoteInput = z.input<typeof noteSchema>;
+export type NoteOutput = z.output<typeof noteSchema>;

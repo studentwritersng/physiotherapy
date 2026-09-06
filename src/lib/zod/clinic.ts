@@ -178,6 +178,30 @@ export const testimonialSchema = z.object({
   published: checkbox,
 });
 
+/**
+ * Relabels for the six SOAP note fields (Task 4). Every key is optional: ""
+ * or absent means "fall back to the SOAP default" in getSoapLabels, so the
+ * clinic can rename one field without touching the other five.
+ */
+const soapLabelField = z
+  .string()
+  .trim()
+  .max(60, "Keep labels under 60 characters")
+  .optional()
+  .transform((v) => (v === undefined || v.length === 0 ? null : v))
+  .nullable();
+
+export const soapLabelsSchema = z.object({
+  subjective: soapLabelField,
+  objective: soapLabelField,
+  treatmentProvided: soapLabelField,
+  patientResponse: soapLabelField,
+  exercisesInstructions: soapLabelField,
+  nextPlan: soapLabelField,
+});
+
+export type SoapLabelsInput = z.infer<typeof soapLabelsSchema>;
+
 export type ClinicSettingsInput = z.infer<typeof clinicSettingsSchema>;
 export type ServiceInput = z.infer<typeof serviceSchema>;
 export type AvailabilityInput = z.infer<typeof availabilitySchema>;
