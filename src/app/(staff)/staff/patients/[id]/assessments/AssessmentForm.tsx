@@ -60,7 +60,7 @@ export function AssessmentForm({
         >
           <option value="">
             {openEpisodes.length > 0
-              ? `Current episode — ${openEpisodes[0]!.reason}`
+              ? "Automatic — join the current episode"
               : "Start a new episode from this assessment"}
           </option>
           {openEpisodes.map((e) => (
