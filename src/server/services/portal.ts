@@ -16,18 +16,6 @@ export async function requireLinkedPatientId(userId: string): Promise<string | n
   return patient?.id ?? null;
 }
 
-export type PortalAppointment = {
-  id: string;
-  start: Date;
-  end: Date;
-  status: string;
-  serviceName: string;
-  therapistName: string | null;
-  therapistId: string | null;
-  serviceId: string;
-  reason: string | null;
-};
-
 /** Single batched read for the dashboard. Empty states are the caller's job. */
 export async function getPortalDashboard(patientId: string, now: Date = new Date()) {
   const [upcoming, recent, planRow, openInvoices] = await Promise.all([

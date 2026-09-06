@@ -139,6 +139,7 @@ test.describe("staff authentication", () => {
       "Appointments",
       "Patients",
       "Payments",
+      "Portal links",
       "Staff",
       "Reports",
       "Clinic settings",
@@ -155,7 +156,7 @@ test.describe("staff authentication", () => {
 
     // Exact equality, so an accidentally added section fails the test rather
     // than passing unnoticed.
-    expect(await navLabels(page)).toEqual(["Dashboard", "My schedule", "My patients"]);
+    expect(await navLabels(page)).toEqual(["Dashboard", "My schedule", "My patients", "Portal links"]);
   });
 
   test("receptionist sees payments but not staff administration", async ({ page }) => {
@@ -166,7 +167,7 @@ test.describe("staff authentication", () => {
 
     await expect(page).toHaveURL(/\/staff$/);
 
-    expect(await navLabels(page)).toEqual(["Dashboard", "Appointments", "Patients", "Payments"]);
+    expect(await navLabels(page)).toEqual(["Dashboard", "Appointments", "Patients", "Payments", "Portal links"]);
   });
 
   test("wrong password shows an error and stays on the login page", async ({ page }) => {
@@ -229,10 +230,14 @@ test.describe("patient authentication", () => {
       await page.goto("/portal/register");
       await page.getByLabel("Full name").fill("Test Patient");
       await page.getByLabel("Phone number").fill(phone);
+      await page.getByLabel("Email").fill(`e2e-login-${Date.now()}@example.com`);
       await page.getByLabel("Password").fill("NewPatient1");
-      await page.getByRole("button", { name: "Create account" }).click();
-
-      await expect(page).toHaveURL(/\/portal$/);
+      // Email is required since sub-project 5 Task 1; argon2 plus a cold
+      // render can exceed 5s, so the navigation gets 10s like other logins.
+      await Promise.all([
+        page.waitForURL(/\/portal$/, { timeout: 10_000 }),
+        page.getByRole("button", { name: "Create account" }).click(),
+      ]);
       await expect(page.getByRole("heading", { name: /Hello, Test Patient/ })).toBeVisible();
     } finally {
       // Registration is the one journey that inserts rows, so it owns the cleanup.

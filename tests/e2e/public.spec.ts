@@ -91,11 +91,12 @@ test.describe("public booking journey", () => {
     await expect(page.getByText(/APT-[0-9A-Z]{6}/)).toBeVisible();
   });
 
-  test("an oversold slot is rejected with a friendly error", async ({ page }) => {
-    // Book the same slot twice: first through the UI-neutral layer is complex,
-    // so book once via the flow, then replay the identical POST through a
-    // second page. Simpler and deterministic: submit the confirm form twice by
-    // going back after the first success.
+  test("a booked slot is hidden from the day, never struck through", async ({ page }) => {
+    // One booking removes every start overlapping it for the pinned therapist
+    // (a 60-minute booking hides four 15-minute starts), so exact arithmetic
+    // on the count is meaningless — the spec §4.4 invariant is directional:
+    // the day offers strictly fewer slots afterwards, and every remaining
+    // radio is enabled (hidden, never struck-through or disabled).
     const phone = `080${Date.now().toString().slice(-8)}`;
     await page.goto("/book");
     await page.getByRole("link", { name: /sports injury rehabilitation/i }).first().click();
@@ -105,9 +106,6 @@ test.describe("public booking journey", () => {
     await expect(slot).toBeVisible({ timeout: 10_000 });
     // The flow accumulates state in the URL, so the booked day is readable here.
     const bookedDate = new URL(page.url()).searchParams.get("date");
-    // Radios carry only HH:MM values shared across therapists, so per-value
-    // absence is not assertable under no-preference fan-out. Instead the day's
-    // radio count must drop by exactly one: the taken slot is hidden, not struck.
     const radiosBefore = await page.getByRole("radio").count();
     await slot.check();
     await page.getByLabel("Full name").fill("First Visitor");
@@ -115,8 +113,7 @@ test.describe("public booking journey", () => {
     await page.getByRole("button", { name: "Confirm booking" }).click();
     await expect(page).toHaveURL(/\/book\/confirm\//);
 
-    // Second visitor, same slot: go back through the flow to the identical date.
-    // The taken slot must not be offered at all (spec §4.4: hidden, not struck).
+    // Second visitor, same day: the taken starts must not be offered at all.
     await page.goto("/book");
     await page.getByRole("link", { name: /sports injury rehabilitation/i }).first().click();
     await page.getByRole("link", { name: /no preference/i }).click();
@@ -124,7 +121,10 @@ test.describe("public booking journey", () => {
     await expect(
       page.getByText("No free slots on this day").or(page.getByRole("radio").first()),
     ).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole("radio")).toHaveCount(radiosBefore - 1);
+    expect(await page.getByRole("radio").count()).toBeLessThan(radiosBefore);
+    for (const radio of await page.getByRole("radio").all()) {
+      await expect(radio).toBeEnabled();
+    }
   });
 
   test("a confirmation without its reference does not render", async ({ page }) => {

@@ -72,11 +72,13 @@ test.describe("portal registration and dashboard", () => {
       await page.getByLabel("Phone number").fill(phone);
       await page.getByLabel("Email").fill(email);
       await page.getByLabel("Password").fill(PASSWORD);
-      await page.getByRole("button", { name: "Create account" }).click();
-
-      // Registration creates the patient row, so this is the linked
-      // dashboard — never the waiting screen.
-      await expect(page).toHaveURL(/\/portal$/);
+      // Same waitForURL-around-click pattern as portalLogin: argon2 hashing
+      // plus a cold dynamic render can exceed the default 5s expect timeout
+      // on this machine, so the navigation gets 10s like logins do.
+      await Promise.all([
+        page.waitForURL(/\/portal$/, { timeout: 10_000 }),
+        page.getByRole("button", { name: "Create account" }).click(),
+      ]);
       await expect(page.getByRole("heading", { name: /Hello, E2E Register/ })).toBeVisible();
       await expect(
         page.getByRole("heading", { name: "Complete your intake form" }),

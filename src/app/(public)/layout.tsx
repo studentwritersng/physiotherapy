@@ -71,7 +71,7 @@ export default async function PublicLayout({ children }: { children: React.React
           <div className="flex items-center gap-1">
             <Link
               href="/book"
-              className="inline-flex min-h-11 cursor-pointer items-center rounded-md bg-jade px-4 py-2 text-sm font-semibold text-btn-ink transition-opacity duration-200 hover:opacity-90"
+              className="inline-flex min-h-9 cursor-pointer items-center rounded-md bg-jade px-3 py-1.5 text-xs font-semibold text-btn-ink transition-opacity duration-200 hover:opacity-90 sm:min-h-11 sm:px-4 sm:py-2 sm:text-sm"
             >
               Book appointment
             </Link>

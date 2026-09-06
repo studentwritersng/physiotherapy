@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { armStaffAccount, disconnect, resetBookingState } from "./helpers/db";
+import { armPortalAccount, armPortalAppointment, armStaffAccount, deletePortalAccount, disconnect, resetBookingState } from "./helpers/db";
 
 const ADMIN_EMAIL = "admin@tetaphysio.ng";
 const RECEPTION_EMAIL = "reception@tetaphysio.ng";
@@ -111,30 +111,23 @@ test.describe("status flow", () => {
   });
 
   test("a cancelled visit shows its reason", async ({ page }) => {
-    // A walk-in starts now, and the seeded 2-hour cancellation cutoff (design
-    // spec §5.2) forbids cancelling it — so drop the cutoff through the admin
-    // UI first, and restore it in `finally` so no state leaks into other
-    // suites or the mobile project replay.
-    async function setCancellationCutoff(hours: string) {
-      await loginAs(page, ADMIN_EMAIL, ADMIN_PASSWORD, /\/staff$/);
-      await page.goto("/staff/settings");
-      const settingsForm = page.locator("form").filter({ has: page.getByLabel("Clinic name") });
-      await settingsForm.getByLabel("Cancellation cutoff (hours)").fill(hours);
-      await settingsForm.getByRole("button", { name: "Save clinic details" }).click();
-      await expect(settingsForm.getByRole("status")).toContainText(/saved/i);
-    }
-
-    await setCancellationCutoff("0");
+    // Arrange in the DB, act in the UI: the visit sits 72h out, safely beyond
+    // the seeded 2-hour cancellation cutoff. The previous version cancelled a
+    // walk-in starting "now" and raced the clock — crossing a minute boundary
+    // between booking and cancelling turns cutoff 0 into a rejection.
+    const phone = "08020000021";
+    const { patientId } = await armPortalAccount({
+      localPhone: phone,
+      password: "CancelE2E1",
+      name: "E2E Cancel",
+      email: "e2e-cancel@example.com",
+      linked: true,
+    });
+    if (!patientId) throw new Error("portal account was not linked");
+    const visitId = await armPortalAppointment(patientId, { startInHours: 72 });
     try {
       await loginAs(page, RECEPTION_EMAIL, RECEPTION_PASSWORD, /\/staff$/);
-      await page.goto("/staff/appointments/walk-in");
-      await page.getByLabel("Phone number").fill(uniquePhone(3));
-      await page.getByLabel("Service", { exact: true }).selectOption({ index: 1 });
-      await page.getByLabel("Therapist").selectOption({ index: 1 });
-      await page.getByRole("button", { name: "Look up" }).click();
-      await page.getByLabel("Patient name").fill("Cancel Flow Test");
-      await page.getByRole("button", { name: "Check in" }).click();
-      await expect(page).toHaveURL(/\/staff\/appointments\/[0-9a-f-]+$/);
+      await page.goto(`/staff/appointments/${visitId}`);
 
       await page.getByLabel("Reason").fill("Patient called in sick");
       await page.getByRole("button", { name: "Cancel appointment" }).click();
@@ -145,14 +138,16 @@ test.describe("status flow", () => {
       // state instead — the pill flips to cancelled and the cancel card is
       // gone, which is what "shows its reason was accepted" means in the UI.
       await expect(page.getByText("cancelled", { exact: false }).first()).toBeVisible();
-      // The pill flips via the action's success banner instantly, but the
-      // Cancel card unmounts only after the router refresh roundtrip lands —
-      // slow under mobile emulation, so this assertion gets room to breathe.
-      await expect(page.getByRole("button", { name: "Cancel appointment" })).toHaveCount(0, {
-        timeout: 15_000,
-      });
+      // Settle with a reload, not the client refresh race: useRefreshOnSuccess
+      // fires router.refresh() after success, but on a loaded box the fresh
+      // payload can land after any fixed polling window. Reload renders the
+      // same server state deterministically — and still fails if the cancel
+      // itself did not go through.
+      await page.reload();
+      await expect(page.getByText("cancelled", { exact: false }).first()).toBeVisible();
+      await expect(page.getByRole("button", { name: "Cancel appointment" })).toHaveCount(0);
     } finally {
-      await setCancellationCutoff("2");
+      await deletePortalAccount(phone);
     }
   });
 });
