@@ -3,7 +3,11 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/env";
 
 export function isGatewayConfigured(): boolean { return Boolean(env.PAYSTACK_SECRET_KEY); }
-export function nairaToKobo(naira: string): number { return Math.round(Number(naira) * 100); }
+/** Decimal-string naira → integer kobo. String-split, never floats. */
+export function nairaToKobo(naira: string): number {
+  const [whole, frac = ""] = naira.split(".");
+  return Number(whole) * 100 + Number((frac + "00").slice(0, 2));
+}
 export function verifyWebhookSignature(rawBody: string, signature: string, secret: string): boolean {
   const digest = createHmac("sha512", secret).update(rawBody).digest("hex");
   const a = Buffer.from(digest), b = Buffer.from(signature);
@@ -27,7 +31,18 @@ export async function verifyPayment(reference: string) {
     headers: { Authorization: `Bearer ${env.PAYSTACK_SECRET_KEY}` },
   });
   if (!res.ok) throw new Error("Could not verify the online payment. Try again.");
-  const data = (await res.json()) as { status: boolean; data: { status: string; amount: number } };
+  const data = (await res.json()) as {
+    status: boolean;
+    data: { status: string; amount: number; metadata?: { invoiceId?: unknown } | null };
+  };
   if (!data.status) throw new Error("Could not verify the online payment. Try again.");
-  return { paid: data.data.status === "success", amountKobo: data.data.amount };
+  // The portal success page records against this invoice id (the callback URL
+  // carries no invoice id, so verify is the only source). Null when Paystack
+  // echoes no metadata — the caller fails closed.
+  const rawInvoiceId = data.data.metadata?.invoiceId;
+  return {
+    paid: data.data.status === "success",
+    amountKobo: data.data.amount,
+    invoiceId: typeof rawInvoiceId === "string" ? rawInvoiceId : null,
+  };
 }

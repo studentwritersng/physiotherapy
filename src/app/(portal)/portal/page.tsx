@@ -3,11 +3,14 @@ import { requirePageRole } from "@/server/auth/page-guard";
 import { getClinicSettings } from "@/server/services/clinic-settings";
 import { buildWhatsAppLink } from "@/lib/site";
 import { TIMEZONE } from "@/lib/constants";
+import { isGatewayConfigured } from "@/server/payments/paystack";
 import {
+  getPortalBilling,
   getPortalDashboard,
   hasSubmittedIntake,
   requireLinkedPatientId,
 } from "@/server/services/portal";
+import { startOnlinePayment } from "./billing/actions";
 
 export const metadata = { title: "My dashboard — TetaPhysio" };
 
@@ -56,11 +59,15 @@ export default async function PortalDashboardPage() {
     );
   }
 
-  const [dash, intakeDone] = await Promise.all([
+  const [dash, intakeDone, billing] = await Promise.all([
     getPortalDashboard(patientId),
     hasSubmittedIntake(patientId),
+    getPortalBilling(patientId),
   ]);
   const next = dash.upcoming[0];
+  // Pay Now exists only when BOTH the gateway key and the clinic switch are on
+  // (read here in the page, not the service) — otherwise no button renders, so
+  // there is never a dead Pay Now to click.
 
   const telHref = settings.contactPhone
     ? `tel:${settings.contactPhone.replace(/[\s-]/g, "")}`
@@ -69,6 +76,7 @@ export default async function PortalDashboardPage() {
     settings.contactWhatsapp,
     "Hello, I have a question about my care.",
   );
+  const canPayOnline = isGatewayConfigured() && settings.onlinePaymentsEnabled;
 
   return (
     <section className="flex flex-col gap-6">
@@ -215,6 +223,55 @@ export default async function PortalDashboardPage() {
             </p>
           ) : (
             <p className="mt-2 text-sm text-ivory-dim">Billing arrives in a later update.</p>
+          )}
+          {billing.invoices.length > 0 && (
+            <ul className="mt-4 flex flex-col">
+              {billing.invoices.map((inv) => (
+                <li
+                  key={inv.id}
+                  className="flex items-center justify-between gap-4 border-b border-dashed border-line py-3 last:border-b-0 last:pb-0"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-ivory">{inv.invoiceNumber}</p>
+                    <p className="tabular text-xs text-ivory-dim">Due ₦{inv.remainder}</p>
+                  </div>
+                  {canPayOnline && (
+                    <form action={startOnlinePayment}>
+                      <input type="hidden" name="invoiceId" value={inv.id} />
+                      <button
+                        type="submit"
+                        className="inline-flex min-h-11 cursor-pointer items-center rounded-md bg-jade px-4 py-2 text-sm font-semibold text-btn-ink transition-opacity duration-200 hover:opacity-90"
+                      >
+                        Pay Now
+                      </button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {billing.payments.length > 0 && (
+            <>
+              <h3 className="mt-5 text-sm font-semibold text-ivory">Payment history</h3>
+              <ul className="mt-2 flex flex-col">
+                {billing.payments.map((payment) => (
+                  <li
+                    key={payment.id}
+                    className="flex items-baseline justify-between gap-4 border-b border-dashed border-line py-2 last:border-b-0 last:pb-0"
+                  >
+                    <div>
+                      <p className="tabular text-sm font-medium text-ivory">₦{payment.amount}</p>
+                      <p className="text-xs text-ivory-dim">
+                        {payment.invoiceNumber} · {payment.method.replace(/_/g, " ")}
+                      </p>
+                    </div>
+                    <p className="tabular shrink-0 text-xs text-ivory-dim">
+                      {payment.paidAt.toLocaleDateString("en-NG", { timeZone: TIMEZONE })}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
       </div>

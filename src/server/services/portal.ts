@@ -1,5 +1,7 @@
 import "server-only";
 import { prisma } from "@/server/db";
+import { env } from "@/lib/env";
+import { initializePayment, nairaToKobo } from "@/server/payments/paystack";
 import {
   bookAppointment,
   cancelAppointment,
@@ -82,6 +84,144 @@ export async function hasSubmittedIntake(patientId: string): Promise<boolean> {
     select: { id: true },
   });
   return row !== null;
+}
+
+// ─────────────────── Portal billing (sub-project 7, task 4) ───────────────────
+// Money stays DECIMAL-STRINGS: kobo math below is integer-only (string-split,
+// mirroring billing.ts), and every exposed figure renders directly, never via
+// Number() for display or arithmetic.
+
+/** Parse "12345.67" to integer kobo. Inputs are Decimal-normalized strings. */
+function billingToKobo(amount: string): number {
+  const [naira, kobo = ""] = amount.split(".");
+  return Number(naira) * 100 + Number((kobo + "00").slice(0, 2));
+}
+
+function billingFromKobo(kobo: number): string {
+  return `${Math.trunc(kobo / 100)}.${String(Math.abs(kobo % 100)).padStart(2, "0")}`;
+}
+
+export type PortalBillingInvoice = {
+  id: string;
+  invoiceNumber: string;
+  status: string;
+  totalAmount: string;
+  paid: string;
+  remainder: string;
+  items: { id: string; description: string; quantity: number; unitPrice: string; amount: string }[];
+};
+
+export type PortalBillingPayment = {
+  id: string;
+  amount: string;
+  method: string;
+  reference: string | null;
+  paidAt: Date;
+  invoiceNumber: string;
+};
+
+export type PortalBilling = {
+  invoices: PortalBillingInvoice[];
+  payments: PortalBillingPayment[];
+  balanceDue: string;
+};
+
+/**
+ * Everything the portal balance card needs, scoped to ONE linked patient.
+ * Open invoices (unpaid/partially_paid) with items + paid/remainder strings;
+ * payment history across all of the patient's invoices, newest first. A forged
+ * patient id simply matches nothing — reads as empty, never another
+ * patient's data.
+ */
+export async function getPortalBilling(patientId: string): Promise<PortalBilling> {
+  const [invoices, payments] = await Promise.all([
+    prisma.invoice.findMany({
+      where: { patientId, status: { in: ["unpaid", "partially_paid"] } },
+      include: {
+        items: { orderBy: { id: "asc" } },
+        payments: { select: { amount: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.payment.findMany({
+      where: { invoice: { patientId } },
+      include: { invoice: { select: { invoiceNumber: true } } },
+      orderBy: { paidAt: "desc" },
+    }),
+  ]);
+
+  let balanceKobo = 0;
+  const open = invoices.map((inv) => {
+    const totalKobo = billingToKobo(String(inv.totalAmount));
+    const paidKobo = inv.payments.reduce((sum, p) => sum + billingToKobo(String(p.amount)), 0);
+    const remainderKobo = totalKobo - paidKobo;
+    balanceKobo += remainderKobo;
+    const { payments: _omit, ...invoice } = inv;
+    return {
+      ...invoice,
+      status: inv.status,
+      totalAmount: billingFromKobo(totalKobo),
+      paid: billingFromKobo(paidKobo),
+      remainder: billingFromKobo(remainderKobo),
+      items: inv.items.map((item) => ({
+        id: item.id,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: billingFromKobo(billingToKobo(String(item.unitPrice))),
+        amount: billingFromKobo(billingToKobo(String(item.amount))),
+      })),
+    };
+  });
+
+  return {
+    invoices: open,
+    payments: payments.map((p) => ({
+      id: p.id,
+      amount: billingFromKobo(billingToKobo(String(p.amount))),
+      method: p.method,
+      reference: p.reference,
+      paidAt: p.paidAt,
+      invoiceNumber: p.invoice.invoiceNumber,
+    })),
+    balanceDue: billingFromKobo(balanceKobo),
+  };
+};
+
+/**
+ * Testable core of the portal Pay Now action. Every check fails closed BEFORE
+ * the gateway is touched: unknown patient or null portal email, an invoice id
+ * that is not this patient's open invoice (forged ids read as "not found"),
+ * or a zero remainder. Returns the Paystack checkout URL; the action redirects
+ * to it OUTSIDE try/catch (redirect throws, and must never be swallowed).
+ */
+export async function prepareOnlinePayment(args: {
+  patientId: string;
+  invoiceId: string;
+}): Promise<{ authorizationUrl: string; reference: string }> {
+  const patient = await prisma.patient.findUnique({
+    where: { id: args.patientId },
+    select: { email: true },
+  });
+  const email = patient?.email ?? null;
+  if (!email) throw new Error("We do not have an email address for this account — update your profile first.");
+
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: args.invoiceId, patientId: args.patientId },
+    select: { id: true, totalAmount: true, payments: { select: { amount: true } } },
+  });
+  if (!invoice) throw new Error("Invoice not found");
+
+  const totalKobo = billingToKobo(String(invoice.totalAmount));
+  const paidKobo = invoice.payments.reduce((sum, p) => sum + billingToKobo(String(p.amount)), 0);
+  const remainderKobo = totalKobo - paidKobo;
+  if (remainderKobo <= 0) throw new Error("This invoice is already paid in full.");
+
+  return initializePayment({
+    email,
+    amountKobo: nairaToKobo(billingFromKobo(remainderKobo)),
+    invoiceId: invoice.id,
+    callbackUrl: `${env.APP_URL}/portal/billing/success`,
+  });
 }
 
 // ─────────────────── Portal appointment mutations ───────────────────
