@@ -4,7 +4,7 @@ Physiotherapy clinic management platform for a single clinic in Nigeria: public 
 
 ## Status
 
-Sub-projects 1 (Foundation), 2 (Clinic configuration), 3 (Booking engine), 4 (Public website), 5 (Patient portal) and 6 (Clinical documentation & treatment plans) are complete. Sub-project 4 ships the marketing site with live clinic data and unauthenticated booking; sub-project 5 ships portal login/registration with staff-approved account linking, the patient dashboard with waiting and empty states, portal appointment booking/reschedule/cancel with cutoff and ownership enforcement, the digital intake form with consent, and profile editing with required email — plus the E2E journeys that cover them. Sub-project 6 ships the staff clinical record (episodes with auto-creation, assessments, SOAP session notes with the edit rule and relabels, treatment plans with exercises and portal visibility, direct-to-R2 document uploads) and the today-view. Operational features arrive with their own sub-projects.
+Sub-projects 1 (Foundation), 2 (Clinic configuration), 3 (Booking engine), 4 (Public website), 5 (Patient portal), 6 (Clinical documentation & treatment plans) and 7 (Billing & payments) are complete. Sub-project 4 ships the marketing site with live clinic data and unauthenticated booking; sub-project 5 ships portal login/registration with staff-approved account linking, the patient dashboard with waiting and empty states, portal appointment booking/reschedule/cancel with cutoff and ownership enforcement, the digital intake form with consent, and profile editing with required email — plus the E2E journeys that cover them. Sub-project 6 ships the staff clinical record (episodes with auto-creation, assessments, SOAP session notes with the edit rule and relabels, treatment plans with exercises and portal visibility, direct-to-R2 document uploads) and the today-view. Sub-project 7 ships invoicing with derived status, manual cash/bank-transfer/POS payments with no-overpayment enforcement, the staff payments hub (outstanding, today's revenue by method, patient lookup, history), the portal balance card with payment history, Paystack online payments behind the gateway key plus the clinic switch with verified idempotent webhooks, and the E2E journeys that cover them. Operational features arrive with their own sub-projects.
 
 | # | Sub-project | State |
 |---|---|---|
@@ -14,7 +14,7 @@ Sub-projects 1 (Foundation), 2 (Clinic configuration), 3 (Booking engine), 4 (Pu
 | 4 | Public website | Done |
 | 5 | Patient portal + intake form | Done |
 | 6 | Clinical documentation & treatment plans | Done |
-| 7 | Billing & payments | Not started |
+| 7 | Billing & payments | Done |
 | 8 | Notifications & reminders (+ OTP, password reset) | Not started |
 | 9 | Reports & analytics | Not started |
 | 10 | Admin remainder | Not started |

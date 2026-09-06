@@ -372,6 +372,83 @@ export function lagosMorningToday(): Date {
   );
 }
 
+// ─────────────────── Billing journeys (sub-project 7) ───────────────────
+// Forged-id and webhook-replay cases stay integration-covered
+// (billing-staff.test.ts, paystack-webhook.test.ts) — never duplicated here.
+
+/**
+ * Pre-armed unpaid invoice with a single line item, so the cash-record journey
+ * starts one step from paid (the under-15-seconds shape): the amount field
+ * arrives prefilled with the remainder and the test only fills + confirms.
+ * invoiceNumber carries a random suffix — Date.now() alone collides when two
+ * fixtures arm within the same millisecond.
+ */
+export async function armBillingInvoice(
+  patientId: string,
+  amount: string,
+): Promise<{ invoiceId: string; invoiceNumber: string }> {
+  const staff = await prisma.user.findFirst({
+    where: { role: { in: ["admin", "receptionist"] }, status: "active", deletedAt: null },
+    select: { id: true },
+  });
+  if (!staff) throw new Error("billing E2E needs a seeded admin or receptionist");
+  const invoiceNumber = `INV-E2E-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const invoice = await prisma.invoice.create({
+    data: {
+      invoiceNumber,
+      patientId,
+      totalAmount: amount,
+      status: "unpaid",
+      createdById: staff.id,
+      items: {
+        create: [{ description: "Physiotherapy session", quantity: 1, unitPrice: amount, amount }],
+      },
+    },
+  });
+  return { invoiceId: invoice.id, invoiceNumber };
+}
+
+/**
+ * Direct payment insert — arming, not the journey (the journey is the staff
+ * record form in test 1). Mirrors the service's status recompute so staff and
+ * portal views filter the invoice realistically: a partial payment leaves it
+ * open, a full one flips it to paid.
+ */
+export async function armBillingPayment(
+  invoiceId: string,
+  amount: string,
+  method: "cash" | "bank_transfer" | "pos" = "cash",
+): Promise<void> {
+  const staff = await prisma.user.findFirst({
+    where: { role: { in: ["admin", "receptionist"] }, status: "active", deletedAt: null },
+    select: { id: true },
+  });
+  if (!staff) throw new Error("billing E2E needs a seeded admin or receptionist");
+  await prisma.payment.create({
+    data: { invoiceId, amount, method, recordedById: staff.id },
+  });
+  const invoice = await prisma.invoice.findUniqueOrThrow({
+    where: { id: invoiceId },
+    select: { totalAmount: true },
+  });
+  const toKobo = (value: string): number => {
+    const [naira, kobo = ""] = value.split(".");
+    return Number(naira) * 100 + Number((kobo + "00").slice(0, 2));
+  };
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId },
+    select: { amount: true },
+  });
+  const totalKobo = toKobo(String(invoice.totalAmount));
+  const paidKobo = payments.reduce((sum, p) => sum + toKobo(String(p.amount)), 0);
+  await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      status: paidKobo >= totalKobo ? "paid" : paidKobo > 0 ? "partially_paid" : "unpaid",
+    },
+  });
+}
+
 /**
  * Flips the clinic master switch over per-plan patient_visible flags. The
  * seed owns the row (upsert id 1), so this is an update, never a create.

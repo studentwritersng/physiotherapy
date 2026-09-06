@@ -1,11 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
 import { armPortalAccount, armPortalAppointment, armStaffAccount, deletePortalAccount, disconnect, resetBookingState } from "./helpers/db";
 
-const ADMIN_EMAIL = "admin@tetaphysio.ng";
 const RECEPTION_EMAIL = "reception@tetaphysio.ng";
 const THERAPIST_EMAIL = "chidera@tetaphysio.ng";
 
-const ADMIN_PASSWORD = "BookingAdmin1";
 const RECEPTION_PASSWORD = "BookingRecep1";
 const THERAPIST_PASSWORD = "BookingThera1";
 
