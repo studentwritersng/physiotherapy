@@ -55,6 +55,11 @@ export async function POST(req: Request) {
   if (typeof invoiceId !== "string" || typeof reference !== "string" || typeof amountKobo !== "number") {
     return jsonError(400, "Invalid webhook payload");
   }
+  // Signed payloads still get shape-checked: a negative or fractional amount
+  // must never become a positive payment (koboToDecimalString drops signs).
+  if (!Number.isInteger(amountKobo) || amountKobo <= 0) {
+    return jsonError(400, "Invalid webhook amount");
+  }
 
   try {
     await recordGatewayPayment({
