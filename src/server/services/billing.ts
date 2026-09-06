@@ -1,6 +1,6 @@
 import "server-only";
 import { Prisma } from "@/generated/prisma/client";
-import type { Invoice, Payment } from "@/generated/prisma/client";
+import type { Invoice, InvoiceItem, Payment } from "@/generated/prisma/client";
 import { prisma } from "@/server/db";
 import type { SessionUser } from "@/server/auth/session";
 import { ForbiddenError } from "@/server/auth/rbac";
@@ -206,4 +206,59 @@ export async function getRevenueByMethod(
     byMethod.set(p.method, (byMethod.get(p.method) ?? 0) + toKobo(String(p.amount)));
   }
   return [...byMethod.entries()].map(([method, kobo]) => ({ method, total: fromKobo(kobo) }));
+}
+
+export type InvoiceWithBalance = {
+  invoice: Invoice;
+  items: InvoiceItem[];
+  paid: string;
+  remainder: string;
+};
+
+/**
+ * Every invoice for one patient, newest first, with string balances attached.
+ * Read-only companion to getInvoiceWithBalance for the hub billing section —
+ * one query for invoices+items+payments, kobo math in memory, no N+1.
+ */
+export async function listInvoicesWithBalances(patientId: string): Promise<InvoiceWithBalance[]> {
+  const invoices = await prisma.invoice.findMany({
+    where: { patientId },
+    include: { items: { orderBy: { id: "asc" } }, payments: { select: { amount: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  return invoices.map((inv) => {
+    const totalKobo = toKobo(String(inv.totalAmount));
+    const paidKobo = inv.payments.reduce((sum, p) => sum + toKobo(String(p.amount)), 0);
+    const { payments: _omit, ...invoice } = inv;
+    return {
+      invoice,
+      items: inv.items,
+      paid: fromKobo(paidKobo),
+      remainder: fromKobo(totalKobo - paidKobo),
+    };
+  });
+}
+
+export type RecentPayment = Payment & {
+  invoice: Pick<Invoice, "id" | "invoiceNumber" | "patientId"> & {
+    patient: { fullName: string; patientCode: string };
+  };
+};
+
+/** Latest payments across the clinic for the /staff/payments history card. */
+export async function listRecentPayments(limit = 50): Promise<RecentPayment[]> {
+  return prisma.payment.findMany({
+    include: {
+      invoice: {
+        select: {
+          id: true,
+          invoiceNumber: true,
+          patientId: true,
+          patient: { select: { fullName: true, patientCode: true } },
+        },
+      },
+    },
+    orderBy: { paidAt: "desc" },
+    take: limit,
+  });
 }

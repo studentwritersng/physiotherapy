@@ -23,6 +23,9 @@ import {
 import { PlanBlock, PlanForm } from "./plans/PlanForms";
 import { downloadDocument } from "./documents/actions";
 import { DocumentUpload } from "./documents/DocumentUpload";
+import { createPatientInvoice, recordPatientPayment } from "./billing/actions";
+import { InvoiceForm, PaymentForm } from "./billing/BillingForms";
+import { listInvoicesWithBalances } from "@/server/services/billing";
 import { MAX_DOCUMENT_BYTES, isStorageConfigured } from "@/server/storage/r2";
 import { getLatestIntake } from "@/server/services/intake";
 import { TIMEZONE } from "@/lib/constants";
@@ -40,6 +43,16 @@ function formatDateTime(date: Date): string {
     minute: "2-digit",
     hour12: false,
   }).format(date);
+}
+
+/**
+ * Money arrives as decimal-strings; pad the fraction for display without
+ * routing through a float. "31001" → "31001.00", "7000.00" → "7000.00".
+ */
+function formatMoney(money: unknown): string {
+  const s = String(money).trim();
+  const [naira, kobo = ""] = s.split(".");
+  return `${naira}.${(kobo + "00").slice(0, 2)}`;
 }
 
 type EpisodeGroup<T> = { episode: EpisodeOfCare | null; items: T[] };
@@ -143,6 +156,12 @@ export default async function PatientRecordPage({
   // exactly this message.
   const storageConfigured = isStorageConfigured();
 
+  // Billing is admin + receptionist only. Therapists never receive the rows:
+  // the section is not rendered and the query never runs server-side, not
+  // merely hidden. The actions enforce the same gate.
+  const canBill = user.role === "admin" || user.role === "receptionist";
+  const invoices = canBill ? await listInvoicesWithBalances(patient.id) : [];
+
   return (
     <div className="flex flex-col gap-6">
       <header>
@@ -239,6 +258,58 @@ export default async function PatientRecordPage({
         )}
       </Card>
 
+      {canBill && (
+        <section id="billing" aria-label="Billing" className="scroll-mt-6">
+          <Card
+            title="Billing"
+            description={
+              invoices.length === 0
+                ? "No invoices yet."
+                : `${invoices.length} invoice${invoices.length === 1 ? "" : "s"}, newest first.`
+            }
+          >
+            {invoices.map(({ invoice, items, paid, remainder }) => (
+              <div key={invoice.id} className="mb-4 last:mb-0">
+                <h3 className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                  <span className="tabular font-semibold text-ivory">
+                    {invoice.invoiceNumber} · ₦{formatMoney(invoice.totalAmount)}
+                  </span>
+                  <span className="text-xs font-medium text-ivory-dim">
+                    {invoice.status.replace("_", " ")} · paid ₦{formatMoney(paid)} · owes ₦
+                    {formatMoney(remainder)}
+                  </span>
+                </h3>
+                <ul className="mt-1 flex flex-col">
+                  {items.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-baseline justify-between gap-3 border-b border-dashed border-line py-1.5 text-sm last:border-b-0"
+                    >
+                      <span className="text-ivory">
+                        {item.description}{" "}
+                        <span className="tabular text-xs text-ivory-faint">× {item.quantity}</span>
+                      </span>
+                      <span className="tabular shrink-0 text-ivory">
+                        ₦{formatMoney(item.amount)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {invoice.status !== "paid" && (
+                  <PaymentForm
+                    action={recordPatientPayment}
+                    patientId={patient.id}
+                    invoiceId={invoice.id}
+                    remainder={formatMoney(remainder)}
+                  />
+                )}
+              </div>
+            ))}
+            <InvoiceForm action={createPatientInvoice} patientId={patient.id} />
+          </Card>
+        </section>
+      )}
+
       {!canReadClinical ? (
         <Card
           title="Clinical record"
@@ -248,8 +319,7 @@ export default async function PatientRecordPage({
             Assessments, notes, plans, and documents are visible to clinical staff only.
           </p>
         </Card>
-      ) : (
-        <>
+      ) : (        <>
           <section id="assessments" aria-label="Assessments" className="scroll-mt-6">
             <Card
               title="Assessments"

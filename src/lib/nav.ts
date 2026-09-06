@@ -27,7 +27,7 @@ export function staffLinksFor(role: UserRole): NavLink[] {
   const reception: NavLink[] = [
     { href: "/staff/appointments", label: "Appointments", available: true },
     { href: "/staff/patients", label: "Patients", available: false, note: "Sub-project 10" },
-    { href: "/staff/payments", label: "Payments", available: false, note: "Sub-project 7" },
+    { href: "/staff/payments", label: "Payments", available: true },
     { href: "/staff/portal-links", label: "Portal links", available: true },
   ];
 
