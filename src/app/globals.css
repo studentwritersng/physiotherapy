@@ -128,6 +128,19 @@ body {
   font-feature-settings: "ss01";
 }
 
+/* Theme-aware brand logo. The light artwork carries dark text for light
+   grounds; the dark artwork is the inverse. The toggle is the same
+   data-theme attribute ThemeToggle writes — never prefers-color-scheme. */
+.logo-for-dark {
+  display: none;
+}
+html[data-theme="dark"] .logo-for-light {
+  display: none;
+}
+html[data-theme="dark"] .logo-for-dark {
+  display: block;
+}
+
 /* Amounts, times and percentages line up in a column. */
 .tabular {
   font-variant-numeric: tabular-nums;

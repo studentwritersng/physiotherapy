@@ -37,8 +37,25 @@ export default async function PublicLayout({ children }: { children: React.React
 
       <header className="border-b border-line bg-ink/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 md:px-6">
-          <Link href="/" className="font-display cursor-pointer text-xl font-semibold text-ivory">
-            {settings.clinicName}
+          <Link href="/" className="flex cursor-pointer items-center gap-2" aria-label={`${settings.clinicName} — home`}>
+            {/* Local brand artwork: plain img, same precedent as the about page. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-light.png"
+              alt=""
+              aria-hidden="true"
+              className="logo-for-light h-8 w-auto object-contain"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo_dark.png"
+              alt=""
+              aria-hidden="true"
+              className="logo-for-dark h-8 w-auto object-contain"
+            />
+            <span className="font-display text-xl font-semibold text-ivory">
+              {settings.clinicName}
+            </span>
           </Link>
           <nav aria-label="Public navigation" className="hidden items-center gap-1 sm:gap-2 lg:flex">
             {NAV.map((item) => (

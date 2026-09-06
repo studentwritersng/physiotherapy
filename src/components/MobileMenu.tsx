@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * Mobile navigation for the public site. Below lg the inline header links
@@ -51,14 +52,15 @@ export function MobileMenu({ links }: { links: { href: string; label: string }[]
         </svg>
       </button>
 
-      {open && (
-        <div
-          id="mobile-menu"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Site menu"
-          className="fixed inset-0 z-50 flex flex-col bg-ink lg:hidden"
-        >
+      {open &&
+        createPortal(
+          <div
+            id="mobile-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Site menu"
+            className="fixed inset-0 z-50 flex flex-col bg-ink lg:hidden"
+          >
           <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
             <span className="font-display text-xl font-semibold text-ivory">Menu</span>
             <button
@@ -117,8 +119,9 @@ export function MobileMenu({ links }: { links: { href: string; label: string }[]
               </button>
             </div>
           </nav>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

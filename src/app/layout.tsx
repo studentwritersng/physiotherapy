@@ -24,6 +24,7 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "TetaPhysio",
   description: "Physiotherapy clinic management",
+  icons: { icon: "/favicon.png", apple: "/favicon.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
