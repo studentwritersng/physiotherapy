@@ -145,8 +145,58 @@ export async function recordManualPayment(
   });
 }
 
-export async function getInvoiceWithBalance(invoiceId: string): Promise<{
-  invoice: Invoice;
+/**
+ * Gateway counterpart of recordManualPayment, called only from the verified
+ * Paystack webhook. Same no-overpayment rule as the manual path (the webhook
+ * route turns the throw into a logged 200-skip). Idempotent on
+ * providerReference: a replayed webhook returns the existing payment instead
+ * of recording a duplicate. recordedById is null — no staff member touched it.
+ */
+export async function recordGatewayPayment(input: {
+  invoiceId: string;
+  amount: string;
+  providerReference: string;
+}): Promise<Payment> {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.payment.findFirst({
+      where: { providerReference: input.providerReference },
+    });
+    if (existing) return existing;
+
+    const invoice = await tx.invoice.findUnique({ where: { id: input.invoiceId } });
+    if (!invoice) throw new Error("Invoice not found");
+
+    const totalKobo = toKobo(String(invoice.totalAmount));
+    const paidKobo = await paidKoboFor(tx, input.invoiceId);
+    const remainderKobo = totalKobo - paidKobo;
+    const amountKobo = toKobo(input.amount);
+    if (amountKobo > remainderKobo) {
+      throw new Error("Payment exceeds the outstanding balance");
+    }
+
+    const payment = await tx.payment.create({
+      data: {
+        invoiceId: input.invoiceId,
+        amount: fromKobo(amountKobo),
+        method: "online_gateway",
+        reference: input.providerReference,
+        providerReference: input.providerReference,
+        recordedById: null,
+      },
+    });
+
+    const newPaidKobo = paidKobo + amountKobo;
+    await tx.invoice.update({
+      where: { id: input.invoiceId },
+      data: {
+        status: newPaidKobo >= totalKobo ? "paid" : newPaidKobo > 0 ? "partially_paid" : "unpaid",
+      },
+    });
+    return payment;
+  });
+}
+
+export async function getInvoiceWithBalance(invoiceId: string): Promise<{  invoice: Invoice;
   paid: string;
   remainder: string;
 }> {
