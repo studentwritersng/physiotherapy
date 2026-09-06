@@ -216,7 +216,15 @@ export default async function PortalDashboardPage() {
           )}
         </div>
         <div className="rounded-lg border border-line bg-surface p-6">
-          <h2 className="font-display text-xl font-medium text-ivory">Balance</h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-display text-xl font-medium text-ivory">Balance</h2>
+            <Link
+              href="/portal/payments"
+              className="cursor-pointer text-sm font-medium text-jade-text underline hover:opacity-80"
+            >
+              View all
+            </Link>
+          </div>
           {dash.balanceDue > 0 ? (
             <p className="tabular font-display mt-2 text-2xl font-semibold text-ivory">
               ₦{dash.balanceDue.toFixed(2)}

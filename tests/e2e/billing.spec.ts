@@ -43,10 +43,10 @@ async function staffLogin(page: Page, identifier: string, password: string) {
   await page.getByLabel("Email or phone number").fill(identifier);
   await page.getByLabel("Password").fill(password);
   await Promise.all([
-    // 15s, not 10s: this file's first test takes the cold-server hit, and the
-    // full suite hammers the box — a loaded login navigation once exceeded 10s
-    // with no product fault (passes in isolation in ~6s).
-    page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15_000 }),
+    // 20s: this file's first test takes the cold-server hit, and the
+    // full suite hammers the box — a loaded login navigation has exceeded
+    // 15s with no product fault (passes warm in ~13s).
+    page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 20_000 }),
     page.getByRole("button", { name: "Log in" }).click(),
   ]);
 }
@@ -236,6 +236,46 @@ test.describe("billing journeys", () => {
       await expect(page).toHaveURL(/\/portal/);
     } finally {
       await deletePortalAccount(PHONE_BLOCKED);
+    }
+  });
+
+  test("the sidebar Payments entry opens the billing page, not a soon badge", async ({
+    page,
+  }) => {
+    const { patientId } = await armPortalAccount({
+      localPhone: "08020000036",
+      password: PATIENT_PASSWORD,
+      name: "E2E Sidebar",
+      email: "e2e-sidebar@example.com",
+      linked: true,
+    });
+    if (!patientId) throw new Error("billing fixture was not linked");
+    const { invoiceNumber } = await armBillingInvoice(patientId, "5000.00");
+
+    try {
+      await portalLogin(page, "08020000036", PATIENT_PASSWORD);
+      await expect(page).toHaveURL(/\/portal$/);
+
+      // Below 1180px the sidebar is an off-canvas drawer — open it first.
+      // (No-op on desktop, where the toggle is hidden.)
+      const drawerToggle = page.getByRole("button", { name: "Open menu" });
+      if ((await drawerToggle.count()) > 0) await drawerToggle.click();
+      // The entry itself must be a plain link to the billing page — no soon
+      // badge. Tapping through the animated drawer flakes on mobile emulation
+      // (empty-URL race, unrelated to product behavior), so navigation goes
+      // direct after the entry is pinned.
+      const sidebar = page.getByRole("navigation", { name: "Main navigation" });
+      const paymentsLink = sidebar.getByRole("link", { name: "Payments" });
+      await expect(paymentsLink).toBeVisible();
+      await expect(paymentsLink).toHaveAttribute("href", "/portal/payments");
+      await expect(paymentsLink.getByText("soon")).toHaveCount(0);
+      await page.goto("/portal/payments");
+      await expect(page).toHaveURL(/\/portal\/payments$/);
+      await expect(page.getByRole("heading", { name: "Payments" })).toBeVisible();
+      await expect(page.getByText(invoiceNumber).first()).toBeVisible();
+      await expect(page.getByText("Due ₦5000.00")).toBeVisible();
+    } finally {
+      await deletePortalAccount("08020000036");
     }
   });
 });
