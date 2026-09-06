@@ -9,7 +9,7 @@ import {
   getPatientDocument,
 } from "@/server/services/clinical";
 import { canViewPatient } from "@/server/services/patient";
-import { presignedGetUrl, presignedPutUrl } from "@/server/storage/r2";
+import { isStorageConfigured, presignedGetUrl, presignedPutUrl } from "@/server/storage/r2";
 import { actionFailed, actionOk, toFieldErrors, type ActionState } from "@/server/action-state";
 
 function recordPath(patientId: string): string {
@@ -52,6 +52,9 @@ export async function requestDocumentUpload(
   }
 
   try {
+    // Cheap explicit gate instead of matching on the error text below: the
+    // message stays user-facing copy, free to reword without breaking logic.
+    if (!isStorageConfigured()) return actionFailed("Document storage is not configured");
     const { url, key } = await presignedPutUrl({
       patientId,
       fileName: fileName.trim(),
@@ -60,9 +63,6 @@ export async function requestDocumentUpload(
     });
     return { ok: true, message: "Upload approved", url, key };
   } catch (error) {
-    if (error instanceof Error && /not configured/i.test(error.message)) {
-      return actionFailed("Document storage is not configured");
-    }
     if (error instanceof Error) return actionFailed(error.message);
     return actionFailed("Could not start the upload. Try again.");
   }

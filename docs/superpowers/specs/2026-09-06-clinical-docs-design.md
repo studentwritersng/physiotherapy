@@ -64,8 +64,10 @@ tables (`episodes_of_care`, `assessments`, `session_notes`, `treatment_plans`,
   everything else works — dev/CI never need a bucket.
 - One new runtime dependency (`@aws-sdk/client-s3`, exact version pinned):
   the single approved exception to the no-new-deps rule.
-- Documents link to patient, optionally to episode/appointment; types:
-  referral, medical report, x-ray, MRI, other (`DocumentType` enum).
+- Documents link to patient, optionally to an episode. Appointment-level
+  linking is deferred (the schema has no appointment_id; episode grouping
+  covers the need) — agreed scope per Task 6 review. Types: referral,
+  medical report, x-ray, MRI, other (`DocumentType` enum).
 
 ## §6 Today-view + relabels + testing
 

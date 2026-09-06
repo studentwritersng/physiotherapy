@@ -86,7 +86,7 @@ export function DocumentUpload({
       row.set("patientId", patientId);
       row.set("key", req.key);
       row.set("fileName", file.name);
-      row.set("mimeType", file.type);
+      row.set("mimeType", file.type || "application/octet-stream");
       row.set("fileSize", String(file.size));
       row.set("documentType", documentType);
       row.set("episodeId", episodeId);
