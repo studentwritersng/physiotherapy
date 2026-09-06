@@ -8,6 +8,8 @@ import {
   getPatientForActor,
 } from "@/server/services/patient";
 import { getRecordTimeline } from "@/server/services/clinical";
+import { dischargeOpenEpisode, saveAssessment } from "./assessments/actions";
+import { AssessmentForm, DischargeEpisodeButton } from "./assessments/AssessmentForm";
 import { getLatestIntake } from "@/server/services/intake";
 import { TIMEZONE } from "@/lib/constants";
 import type { EpisodeOfCare } from "@/generated/prisma/client";
@@ -103,6 +105,8 @@ export default async function PatientRecordPage({
     : { assessments: [], notes: [], plans: [], documents: [], episodes: [] };
 
   const assessmentGroups = groupByEpisode(timeline.assessments, timeline.episodes);
+  const openEpisodes = timeline.episodes.filter((e) => e.status === "active");
+  const latestAssessment = timeline.assessments[0] ?? null;
   const noteGroups = groupByEpisode(timeline.notes, timeline.episodes);
   const planGroups = groupByEpisode(timeline.plans, timeline.episodes);
   const documentGroups = groupByEpisode(timeline.documents, timeline.episodes);
@@ -245,6 +249,20 @@ export default async function PatientRecordPage({
                   </ul>
                 </div>
               ))}
+              {openEpisodes.map((episode) => (
+                <DischargeEpisodeButton
+                  key={episode.id}
+                  action={dischargeOpenEpisode}
+                  patientId={patient.id}
+                  episode={episode}
+                />
+              ))}
+              <AssessmentForm
+                action={saveAssessment}
+                patientId={patient.id}
+                openEpisodes={openEpisodes}
+                latest={latestAssessment}
+              />
             </Card>
           </section>
 
