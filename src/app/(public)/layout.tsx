@@ -48,14 +48,11 @@ export default async function PublicLayout({ children }: { children: React.React
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo_dark.png"
+              src="/logo-dark.png"
               alt=""
               aria-hidden="true"
               className="logo-for-dark h-8 w-auto object-contain"
             />
-            <span className="font-display text-xl font-semibold text-ivory">
-              {settings.clinicName}
-            </span>
           </Link>
           <nav aria-label="Public navigation" className="hidden items-center gap-1 sm:gap-2 lg:flex">
             {NAV.map((item) => (
@@ -68,12 +65,18 @@ export default async function PublicLayout({ children }: { children: React.React
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Link
               href="/book"
-              className="inline-flex min-h-9 cursor-pointer items-center rounded-md bg-jade px-3 py-1.5 text-xs font-semibold text-btn-ink transition-opacity duration-200 hover:opacity-90 sm:min-h-11 sm:px-4 sm:py-2 sm:text-sm"
+              className="hidden min-h-11 cursor-pointer items-center rounded-md bg-jade px-4 py-2 text-sm font-semibold text-btn-ink transition-opacity duration-200 hover:opacity-90 sm:inline-flex"
             >
               Book appointment
+            </Link>
+            <Link
+              href="/portal/login"
+              className="inline-flex min-h-9 cursor-pointer items-center rounded-md border border-line-strong px-3 py-1.5 text-xs font-medium text-ivory transition-colors duration-150 hover:bg-surface-2 sm:min-h-11 sm:px-4 sm:py-2 sm:text-sm"
+            >
+              Login
             </Link>
             <ThemeToggle />
             <MobileMenu links={NAV.map(({ href, label }) => ({ href, label }))} />

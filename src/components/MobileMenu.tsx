@@ -110,13 +110,13 @@ export function MobileMenu({ links }: { links: { href: string; label: string }[]
               >
                 Book appointment
               </Link>
-              <button
-                type="button"
+              <Link
+                href="/portal/login"
                 onClick={() => setOpen(false)}
                 className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-md border border-line-strong px-6 py-3 text-base font-medium text-ivory transition-colors duration-150 hover:bg-surface-2"
               >
-                Close menu
-              </button>
+                Login
+              </Link>
             </div>
           </nav>
           </div>,
