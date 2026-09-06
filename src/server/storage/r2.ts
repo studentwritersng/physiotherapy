@@ -11,6 +11,9 @@ const ALLOWED: Record<string, string> = {
   "image/png": ".png",
 };
 
+/** MIME types the documents UI accepts — PDF plus phone-camera images. */
+export const ALLOWED_DOCUMENT_MIMES = Object.keys(ALLOWED);
+
 export function isStorageConfigured(): boolean {
   return Boolean(env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET);
 }
@@ -32,13 +35,23 @@ export function buildDocumentKey(patientId: string, fileName: string): string {
   return `patients/${patientId}/${randomUUID()}-${base}${ext}`;
 }
 
-function checkFile(contentType: string, sizeBytes: number): string {
+/**
+ * Shared type/size gate. presignedPutUrl runs this BEFORE the configured check
+ * (so callers see validation errors even with no credentials), and the row
+ * writer runs it again AFTER the browser's direct-to-R2 PUT — the bytes on the
+ * wire are never trusted on arrival.
+ */
+export function assertValidDocumentFile(contentType: string, sizeBytes: number): string {
   const ext = ALLOWED[contentType];
   if (!ext) throw new Error("Only PDF, JPG and PNG file types are accepted");
   if (!Number.isFinite(sizeBytes) || sizeBytes <= 0 || sizeBytes > MAX_DOCUMENT_BYTES) {
     throw new Error("Files must be under 10MB");
   }
   return ext;
+}
+
+function checkFile(contentType: string, sizeBytes: number): string {
+  return assertValidDocumentFile(contentType, sizeBytes);
 }
 
 export async function presignedPutUrl(input: { patientId: string; fileName: string; contentType: string; sizeBytes: number }): Promise<{ url: string; key: string }> {

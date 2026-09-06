@@ -21,6 +21,9 @@ import {
   setPlanVisibility,
 } from "./plans/actions";
 import { PlanBlock, PlanForm } from "./plans/PlanForms";
+import { downloadDocument } from "./documents/actions";
+import { DocumentUpload } from "./documents/DocumentUpload";
+import { MAX_DOCUMENT_BYTES, isStorageConfigured } from "@/server/storage/r2";
 import { getLatestIntake } from "@/server/services/intake";
 import { TIMEZONE } from "@/lib/constants";
 import type { EpisodeOfCare } from "@/generated/prisma/client";
@@ -134,6 +137,11 @@ export default async function PatientRecordPage({
     hasNote: a.sessionNote !== null,
   }));
   const canWriteNotes = user.role === "therapist";
+
+  // Without R2 credentials (CI included) the section names the gap instead of
+  // a dead picker — the bytes have nowhere to go, and the E2E suite asserts
+  // exactly this message.
+  const storageConfigured = isStorageConfigured();
 
   return (
     <div className="flex flex-col gap-6">
@@ -401,11 +409,34 @@ export default async function PatientRecordPage({
                         <span className="tabular text-xs text-ivory-faint">
                           {formatDateTime(d.uploadedAt)}
                         </span>
+                        {storageConfigured && (
+                          <form action={downloadDocument} className="mt-1">
+                            <input type="hidden" name="documentId" value={d.id} />
+                            <input type="hidden" name="patientId" value={patient.id} />
+                            <button
+                              type="submit"
+                              className="inline-flex min-h-11 min-w-11 cursor-pointer items-center rounded-md border border-line px-3 py-2 text-xs font-semibold text-ivory transition-colors duration-150 hover:bg-surface-2"
+                            >
+                              Download
+                            </button>
+                          </form>
+                        )}
                       </li>
                     ))}
                   </ul>
                 </div>
               ))}
+              {storageConfigured ? (
+                <DocumentUpload
+                  patientId={patient.id}
+                  openEpisodes={openEpisodes}
+                  maxBytes={MAX_DOCUMENT_BYTES}
+                />
+              ) : (
+                <p className="mt-2 text-sm text-ivory-dim">
+                  Document storage is not configured
+                </p>
+              )}
             </Card>
           </section>
         </>

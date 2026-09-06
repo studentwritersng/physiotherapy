@@ -4,7 +4,7 @@ Physiotherapy clinic management platform for a single clinic in Nigeria: public 
 
 ## Status
 
-Sub-projects 1 (Foundation), 2 (Clinic configuration), 3 (Booking engine), 4 (Public website) and 5 (Patient portal) are complete. Sub-project 4 ships the marketing site with live clinic data and unauthenticated booking; sub-project 5 ships portal login/registration with staff-approved account linking, the patient dashboard with waiting and empty states, portal appointment booking/reschedule/cancel with cutoff and ownership enforcement, the digital intake form with consent, and profile editing with required email — plus the E2E journeys that cover them. Operational features arrive with their own sub-projects.
+Sub-projects 1 (Foundation), 2 (Clinic configuration), 3 (Booking engine), 4 (Public website), 5 (Patient portal) and 6 (Clinical documentation & treatment plans) are complete. Sub-project 4 ships the marketing site with live clinic data and unauthenticated booking; sub-project 5 ships portal login/registration with staff-approved account linking, the patient dashboard with waiting and empty states, portal appointment booking/reschedule/cancel with cutoff and ownership enforcement, the digital intake form with consent, and profile editing with required email — plus the E2E journeys that cover them. Sub-project 6 ships the staff clinical record (episodes with auto-creation, assessments, SOAP session notes with the edit rule and relabels, treatment plans with exercises and portal visibility, direct-to-R2 document uploads) and the today-view. Operational features arrive with their own sub-projects.
 
 | # | Sub-project | State |
 |---|---|---|
@@ -13,7 +13,7 @@ Sub-projects 1 (Foundation), 2 (Clinic configuration), 3 (Booking engine), 4 (Pu
 | 3 | Booking engine, staff calendar, walk-ins | Done |
 | 4 | Public website | Done |
 | 5 | Patient portal + intake form | Done |
-| 6 | Clinical documentation & treatment plans | Not started |
+| 6 | Clinical documentation & treatment plans | Done |
 | 7 | Billing & payments | Not started |
 | 8 | Notifications & reminders (+ OTP, password reset) | Not started |
 | 9 | Reports & analytics | Not started |
@@ -52,6 +52,11 @@ The test database also needs the migrations applied once:
 ```bash
 DATABASE_URL="postgresql://postgres@localhost:5435/teta_physio_test" npx prisma migrate deploy
 ```
+
+Document uploads need four optional env vars (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+`R2_SECRET_ACCESS_KEY`, `R2_BUCKET`). Browsers PUT bytes direct to R2 via presigned
+URLs, so files never pass through the server; without all four the record's Documents
+section shows "Document storage is not configured" instead of the picker.
 
 ## Seeded logins
 
@@ -118,7 +123,7 @@ The test suite never connects to Neon.
 
 ## Verified state
 
-Last full sweep (sub-project 3): 27 tables, 15 enums, two migrations applied (`init`, `no_therapist_overlap`). 263 Vitest tests across 26 files pass. Playwright booking journeys (6 per project) pass on chromium; full-suite per-project counts recorded in the Task 10 report. `tsc --noEmit` and `next build` clean.
+Last full sweep (sub-project 6): 27 tables, 15 enums, three migrations applied (`init`, `no_therapist_overlap`, `add_soap_labels`). 323 Vitest tests across 40 files pass. Playwright journeys pass on chromium and mobile (58 per project: auth, portal, booking, clinic-config, public, clinical). `tsc --noEmit`, `next build` and `eslint` clean (two pre-existing unused-var warnings in `tests/e2e/booking.spec.ts`).
 
 ## Documentation
 

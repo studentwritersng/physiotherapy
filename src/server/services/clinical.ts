@@ -2,7 +2,8 @@ import "server-only";
 import { prisma } from "@/server/db";
 import { ForbiddenError } from "@/server/auth/rbac";
 import type { SessionUser } from "@/server/auth/session";
-import { assessmentSchema, exerciseSchema, exerciseUpdateSchema, noteSchema, planSchema, planUpdateSchema, type AssessmentInput, type ExerciseInput, type ExerciseUpdateInput, type NoteInput, type PlanInput, type PlanUpdateInput } from "@/lib/zod/clinical";
+import { assessmentSchema, documentSchema, exerciseSchema, exerciseUpdateSchema, noteSchema, planSchema, planUpdateSchema, type AssessmentInput, type DocumentInput, type ExerciseInput, type ExerciseUpdateInput, type NoteInput, type PlanInput, type PlanUpdateInput } from "@/lib/zod/clinical";
+import { assertValidDocumentFile } from "@/server/storage/r2";
 import { assertCanReadClinical, canViewPatient } from "@/server/services/patient";
 import { todayKey } from "@/lib/slots";
 
@@ -284,4 +285,57 @@ export async function getPlansWithExercises(patientId: string) {
     orderBy: { createdAt: "desc" },
     include: { exercises: { orderBy: { sortOrder: "asc" } } },
   });
+}
+
+// ─────────────────── Patient documents ───────────────────
+
+/**
+ * Records the PatientDocument row AFTER the browser's direct-to-R2 PUT.
+ * Mime, size and enum are re-validated here — the presign-time check proves
+ * nothing about the bytes that actually arrived. An explicit episodeId must
+ * belong to the patient; otherwise the row joins the open episode when one
+ * exists, or stands outside episodes (null) like a pre-episode scan.
+ */
+export async function createPatientDocument(actor: SessionUser, patientId: string, input: DocumentInput) {
+  await assertCanWriteClinical(actor, patientId);
+  const parsed = documentSchema.parse(input);
+  assertValidDocumentFile(parsed.mimeType, parsed.fileSize);
+  const { episodeId: choice, key, ...fields } = parsed;
+  let episodeId: string | null = null;
+  if (choice) {
+    const episode = await prisma.episodeOfCare.findFirst({
+      where: { id: choice, patientId },
+    });
+    if (!episode) throw new Error("Episode not found");
+    episodeId = episode.id;
+  } else {
+    episodeId = (await getOpenEpisode(patientId))?.id ?? null;
+  }
+  return prisma.patientDocument.create({
+    data: {
+      ...fields,
+      fileUrl: key,
+      patientId,
+      episodeId,
+      uploadedById: actor.id,
+    },
+  });
+}
+
+/**
+ * One document row for the download action. Scoped to the posted patientId so
+ * a forged document id fails closed as "not found", never another patient's
+ * file. Read-only, so receptionists pass here — but the record shell never
+ * renders the button for them.
+ */
+export async function getPatientDocument(actor: SessionUser, patientId: string, documentId: string) {
+  if (!(await canViewPatient(actor, patientId))) {
+    throw new ForbiddenError("You do not have access to this patient");
+  }
+  assertCanReadClinical(actor);
+  const doc = await prisma.patientDocument.findFirst({
+    where: { id: documentId, patientId },
+  });
+  if (!doc) throw new Error("Document not found");
+  return doc;
 }

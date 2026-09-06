@@ -122,3 +122,24 @@ export const exerciseUpdateSchema = z.object({
 });
 
 export type ExerciseUpdateInput = z.input<typeof exerciseUpdateSchema>;
+
+/**
+ * Patient document row (PRD-05 §5). documentType mirrors the Prisma
+ * DocumentType enum; key is the R2 object key stored as fileUrl. The size
+ * ceiling lives in the service's assertValidDocumentFile re-check (which
+ * shares one message with the presigner), so this schema only requires a
+ * positive integer — never a competing limit.
+ */
+export const documentTypeEnum = z.enum(["referral", "medical_report", "xray", "mri", "other"]);
+
+export const documentSchema = z.object({
+  key: z.string().trim().min(1, "Missing file reference. Try the upload again.").max(500),
+  fileName: z.string().trim().min(1, "Give the file a name").max(255),
+  mimeType: z.string().trim().min(1, "Missing file type. Try the upload again."),
+  fileSize: z.coerce.number().int().min(1, "Empty files cannot be uploaded"),
+  documentType: documentTypeEnum,
+  episodeId: episodeIdField,
+});
+
+export type DocumentInput = z.input<typeof documentSchema>;
+export type DocumentOutput = z.output<typeof documentSchema>;

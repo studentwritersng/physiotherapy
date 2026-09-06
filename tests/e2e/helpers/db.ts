@@ -2,7 +2,7 @@ import "dotenv/config";
 import { hash } from "@node-rs/argon2";
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { ARGON2_OPTIONS } from "@/lib/constants";
+import { ARGON2_OPTIONS, TIMEZONE } from "@/lib/constants";
 
 /**
  * Playwright drives the app against the development database, and several
@@ -284,4 +284,99 @@ export async function armPublicBookingState(): Promise<void> {
       });
     }
   }
+}
+
+// ─────────────────── Clinical journeys (sub-project 6) ───────────────────
+// Forged-id and midnight-boundary cases stay integration-covered
+// (clinical-assessment.test.ts, clinical-notes.test.ts) — never duplicated here.
+
+/** Seeded therapist the clinical journeys log in as. Never a fixture phone. */
+export const CLINICAL_THERAPIST_EMAIL = "chidera@tetaphysio.ng";
+
+/**
+ * Arms the seeded therapist for straight-to-dashboard entry (no forced
+ * password change) and returns their id, so fixtures pin the appointment to
+ * the same therapist who logs in: therapists only see patients they share an
+ * appointment with, and only the appointed therapist writes SOAP notes.
+ */
+export async function armClinicalTherapist(password: string): Promise<string> {
+  await armStaffAccount(CLINICAL_THERAPIST_EMAIL, password, false);
+  const therapist = await prisma.user.findUniqueOrThrow({
+    where: { email: CLINICAL_THERAPIST_EMAIL },
+    select: { id: true },
+  });
+  return therapist.id;
+}
+
+/**
+ * Linked portal account for clinical fixtures. The staff journeys need the
+ * patient row (plus the shared appointment below); the plan journey also
+ * needs the portal login, so every fixture is portal-ready.
+ */
+export async function armClinicalPatient(
+  localPhone: string,
+  password: string,
+  name: string,
+): Promise<{ userId: string; patientId: string | null }> {
+  return armPortalAccount({
+    localPhone,
+    password,
+    name,
+    email: `${localPhone}@example.com`,
+    linked: true,
+  });
+}
+
+/**
+ * Direct appointment insert pinning one therapist and one start, bypassing
+ * the booking engine the way armPortalAppointment does. The caller owns the
+ * start: future starts render pickers, lagosMorningToday() lands the
+ * today-view.
+ */
+export async function armClinicalAppointment(
+  patientId: string,
+  therapistId: string,
+  start: Date,
+): Promise<string> {
+  const refs = await portalSeedRefs();
+  const service = await prisma.service.findUniqueOrThrow({ where: { id: refs.serviceId } });
+  const appt = await prisma.appointment.create({
+    data: {
+      patientId,
+      therapistId,
+      serviceId: refs.serviceId,
+      scheduledStart: start,
+      scheduledEnd: new Date(start.getTime() + service.defaultDurationMinutes * 60_000),
+      status: "scheduled",
+      bookedVia: "staff",
+    },
+  });
+  return appt.id;
+}
+
+/**
+ * Lagos 10:00 today as a UTC instant (WAT is UTC+1 year-round). Inside
+ * today's day-range whether the suite runs before or after it — unlike
+ * now-plus-N-hours, which crosses midnight on late runs.
+ */
+export function lagosMorningToday(): Date {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)!.value;
+  return new Date(
+    Date.UTC(Number(get("year")), Number(get("month")) - 1, Number(get("day")), 9, 0),
+  );
+}
+
+/**
+ * Flips the clinic master switch over per-plan patient_visible flags. The
+ * seed owns the row (upsert id 1), so this is an update, never a create.
+ * Callers restore false in a finally — the portal suite assumes it off.
+ */
+export async function setShowClinicalToPatients(value: boolean): Promise<void> {
+  await prisma.clinicSettings.update({ where: { id: 1 }, data: { showClinicalToPatients: value } });
 }
