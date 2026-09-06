@@ -14,6 +14,10 @@ const schema = z.object({
   SEED_ADMIN_PASSWORD: z.string().min(8).default("changeme1"),
   SEED_STAFF_PASSWORD: z.string().min(8).default("changeme1"),
   SEED_PATIENT_PASSWORD: z.string().min(8).default("changeme1"),
+  R2_ACCOUNT_ID: z.string().min(1).optional(),
+  R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+  R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  R2_BUCKET: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof schema>;
