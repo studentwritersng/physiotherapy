@@ -318,6 +318,30 @@ html[data-theme="dark"] .logo-for-dark {
   }
 }
 
+/* Permanently dark sidebar, both themes. Scoped custom-property overrides
+   (same values as the dark theme block) so every token utility inside —
+   text, glass, borders, hovers — resolves dark regardless of data-theme.
+   The rest of the UI keeps following the theme. */
+.sidebar-dark {
+  --color-ivory: #f5efe3;
+  --color-ivory-dim: rgba(245, 239, 227, 0.62);
+  --color-ivory-faint: rgba(245, 239, 227, 0.52);
+  --color-glass: rgba(18, 41, 37, 0.88);
+  --color-glass-strong: rgba(18, 41, 37, 0.92);
+  --color-glass-border: rgba(245, 239, 227, 0.1);
+  --color-glass-shadow:
+    0 18px 36px -22px rgba(0, 0, 0, 0.5),
+    0 2px 6px -3px rgba(0, 0, 0, 0.3);
+  --color-surface: #122c25;
+  --color-surface-2: #183931;
+  --color-track: rgba(245, 239, 227, 0.12);
+  --color-line: rgba(245, 239, 227, 0.1);
+  --color-line-strong: rgba(245, 239, 227, 0.16);
+  --color-jade-text: #33c793;
+  --color-jade-dim: rgba(51, 199, 147, 0.16);
+  --color-gold-text: #f0a83b;
+}
+
 @keyframes rise {
   from {
     opacity: 0;

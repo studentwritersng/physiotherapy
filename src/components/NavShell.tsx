@@ -158,7 +158,7 @@ export function NavShell({
       />
 
       {/* Sidebar — vertical card on the left, icon-only when collapsed (`md:hidden lg:block`) */}
-      <aside className="tp-sidebar rounded-lg border border-glass-border bg-glass shadow-glass backdrop-blur-md">
+      <aside className="tp-sidebar sidebar-dark rounded-lg border border-glass-border bg-glass shadow-glass backdrop-blur-md">
         <nav aria-label="Main navigation" className="flex h-full flex-col p-3" onClick={() => setMobileOpen(false)}>
           <ul className="flex flex-1 flex-col gap-1">
             {links.map((link) => (
